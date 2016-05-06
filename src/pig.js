@@ -243,7 +243,7 @@
        * @returns {string} The URL of the image at the given size.
        */
       urlForSize: function(filename, size) {
-        return '/' + filename + '?s=' + size;
+        return '/img/' + size + '/' + filename;
       },
 
       /**
@@ -731,7 +731,7 @@
     // user is scrolling down the page very fast and hide() is called within
     // 100ms of load(), the hide() function will set this.existsOnPage to false
     // and we can exit.
-    setTimeout(funciton() {
+    setTimeout(function() {
 
       // The image was hidden very quickly after being loaded, so don't bother
       // loading it at all.
@@ -771,7 +771,7 @@
 
         this.getElement().appendChild(this.fullImage);
       }
-    }, 100);
+    }.bind(this), 100);
   };
 
   /**
