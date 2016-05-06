@@ -279,4 +279,4 @@ Enable the Pig library by beginning to listen to scroll and resize events, loadi
 
 Disable the Pig library by removing event listeners set in `Pig.enable()`.
 
-[download]: https://github.com/minimill/pig.js/releases/download/v0.1/pig.min.js
+[download]: https://github.com/schlosser/pig.js/releases/download/v0.1/pig.min.js
