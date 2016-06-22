@@ -100,7 +100,7 @@ var pig = new Pig().enable(imageData, options);
 
 ## API
 
-### Pig([_imageData_, _options_])
+### Pig(_imageData_[, _options_])
 
 The `Pig` constructor will setup a new progressive image grid instance. It returns a new instance of the `Pangea` class.
 
