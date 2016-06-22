@@ -135,8 +135,8 @@ var options = {
   figureTagName: 'figure',
   spaceBetweenImages: 8,
   transitionSpeed: 500,
-  primaryImageBufferHeight: 3000,
-  secondaryImageBufferHeight: 1000,
+  primaryImageBufferHeight: 1000,
+  secondaryImageBufferHeight: 300,
   thumbnailSize: 20,
   urlForSize: function(filename, size) {
     return '/img/' + size + '/' + filename;
@@ -193,15 +193,15 @@ Transition speed in milliseconds.
 
 #### `options.primaryImageBufferHeight` _(number)_
 
-Height in pixels of images to preload in the direction that the user is scrolling. For example, in the default case, if the user is scrolling down, 3000px worth of images will be loaded below the viewport.
+Height in pixels of images to preload in the direction that the user is scrolling. For example, in the default case, if the user is scrolling down, 1000px worth of images will be loaded below the viewport.
 
-> **Default**: `3000`
+> **Default**: `1000`
 
 #### `options.secondaryImageBufferHeight` _(number)_
 
-Height in pixels of images to preload in the direction that the user is NOT scrolling. For example, in the default case, if the user is scrolling down, 1000px worth of images will be loaded above the viewport.  Images further up will be removed.
+Height in pixels of images to preload in the direction that the user is NOT scrolling. For example, in the default case, if the user is scrolling down, 300px worth of images will be loaded above the viewport.  Images further up will be removed.
 
-> **Default**: `1000`
+> **Default**: `300`
 
 #### `options.thumbnailSize` _(number)_
 
@@ -280,6 +280,6 @@ Enable the Pig library by beginning to listen to scroll and resize events, loadi
 
 Disable the Pig library by removing event listeners set in `Pig.enable()`.
 
-[download]: https://github.com/schlosser/pig.js/releases/download/v0.1/pig.min.js
+[download]: https://github.com/schlosser/pig.js/releases/download/v0.2/pig.min.js
 [feeding-dan]: https://feeding.schlosser.io/
 [feeding-dan-gh]: https://github.com/schlosser/feeding-dan/

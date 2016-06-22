@@ -210,20 +210,20 @@
        * Default: 3000
        * Description: Height in pixels of images to preload in the direction
        *   that the user is scrolling. For example, in the default case, if the
-       *   user is scrolling down, 3000px worth of images will be loaded below
+       *   user is scrolling down, 1000px worth of images will be loaded below
        *   the viewport.
        */
-      primaryImageBufferHeight: 3000,
+      primaryImageBufferHeight: 1000,
 
       /**
        * Type: Number
        * Default: 100
        * Description: Height in pixels of images to preload in the direction
        *   that the user is NOT scrolling. For example, in the default case, if
-       *   the user is scrolling down, 1000px worth of images will be loaded
+       *   the user is scrolling down, 300px worth of images will be loaded
        *   above the viewport.  Images further up will be removed.
        */
-      secondaryImageBufferHeight: 1000,
+      secondaryImageBufferHeight: 300,
 
       /**
        * Type: Number
@@ -780,26 +780,28 @@
    * ProgressiveImage object.
    */
   ProgressiveImage.prototype.hide = function() {
+    // Remove the images from the element, so that if a user is scrolling super
+    // fast, we won't try to load every image we scroll past.
+    if (this.getElement()) {
+      if (this.thumbnail) {
+        this.thumbnail.src = '';
+        this.getElement().removeChild(this.thumbnail);
+        delete this.thumbnail;
+      }
+
+      if (this.fullImage) {
+        this.fullImage.src = '';
+        this.getElement().removeChild(this.fullImage);
+        delete this.fullImage;
+      }
+    }
+
     // Remove the image from the DOM.
     if (this.existsOnPage) {
       this.pig.container.removeChild(this.getElement());
     }
 
     this.existsOnPage = false;
-
-    // Remove the images from the element, so that if a user is scrolling super
-    // fast, we won't try to load every image we scroll past.
-    if (this.getElement()) {
-      if (this.thumbnail) {
-        this.getElement().removeChild(this.thumbnail);
-        delete this.thumbnail;
-      }
-
-      if (this.fullImage) {
-        this.getElement().removeChild(this.fullImage);
-        delete this.fullImage;
-      }
-    }
 
   };
 
