@@ -1,5 +1,8 @@
 Progressive Image Grid (`pig.js`)
 =================================
+
+[![npm](https://img.shields.io/npm/v/pig.js.svg)](https://www.npmjs.com/package/pig.js) [![Bower](https://img.shields.io/bower/v/pig.js.svg)]()
+
 #### → → [Play with a demo][feeding-dan]
 
 Arrange images in a responsive, progressive-loading grid managed in JavaScript using CSS transforms, with one lightweight library. Here's what you get:
