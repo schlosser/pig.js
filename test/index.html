@@ -8,10 +8,21 @@
         body {
             padding: 2rem;
         }
+
+        /* Tests that the container works even if it has a relative parent
+         * lower than the page.
+         */
+        .pig-wrapper {
+            position: relative;
+            margin-top: 400px;
+        }
     </style>
 </head>
 <body>
-    <div id="pig"></div>
+    <h1>Scroll to see some images...</h1>
+    <div class="pig-wrapper">
+        <div id="pig"></div>
+    </div>
     <script type="text/javascript" src="../src/pig.js"></script>
     <script type="text/javascript">
         var imageData = [

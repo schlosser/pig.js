@@ -77,6 +77,7 @@
       '  position: relative;' +
       '}' +
       '.' + classPrefix + '-figure {' +
+      '  background-color: #D5D5D5;' +
       '  overflow: hidden;' +
       '  left: 0;' +
       '  position: absolute;' +
@@ -130,6 +131,24 @@
         obj1[i] = obj2[i];
       }
     }
+  }
+
+  /**
+   * Returns the distance from `elem` to the top of the page. This is done by
+   * walking up the node tree, getting the offsetTop of each parent node, until
+   * the top of the page.
+   *
+   * @param {object} elem - The element to compute the offset of.
+   **/
+  function _getOffsetTop(elem){
+      var offsetTop = 0;
+      do {
+        if (!isNaN(elem.offsetTop)){
+            offsetTop += elem.offsetTop;
+        }
+        elem = elem.offsetParent;
+      } while(elem);
+      return offsetTop;
   }
 
   /**
@@ -560,7 +579,7 @@
       this.settings.primaryImageBufferHeight;
 
     // Now we compute the location of the top and bottom buffers:
-    var containerOffset = this.container.offsetTop;
+    var containerOffset = _getOffsetTop(this.container);
     var windowHeight = window.innerHeight;
 
     // This is the top of the top buffer. If the bottom of an image is above

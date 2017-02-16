@@ -1,6 +1,6 @@
 {
   "name": "pig.js",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "description": "Arrange images in a responsive, progressive-loading grid managed in JavaScript using CSS transforms.",
   "repository": "https://github.com/schlosser/pig.js",
   "devDependencies": {
