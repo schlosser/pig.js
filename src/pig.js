@@ -458,6 +458,9 @@
       // images.
       if (rowAspectRatio >= this.minAspectRatio || index + 1 === this.images.length) {
 
+        // Make sure that the last row also has a reasonable height
+        rowAspectRatio = Math.max(rowAspectRatio, this.minAspectRatio);
+        
         // Compute this row's height.
         var totalDesiredWidthOfImages = wrapperWidth - this.settings.spaceBetweenImages * (row.length - 1);
         var rowHeight = totalDesiredWidthOfImages / rowAspectRatio;
