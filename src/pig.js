@@ -314,7 +314,7 @@
     _extend(this.settings, options || {});
 
     // Find the container to load images into, if it exists.
-    this.container = document.getElementById(this.settings.containerId);
+    this.container = this.settings.container || document.getElementById(this.settings.containerId);
     if (!this.container) {
       console.error('Could not find element with ID ' + this.settings.containerId);
     }
@@ -324,7 +324,9 @@
     this.images = this._parseImageData(imageData);
 
     // Inject our boilerplate CSS.
-    _injectStyle(this.settings.containerId, this.settings.classPrefix, this.settings.transitionSpeed);
+    if (this.settings.containerId && this.settings.skipInjectStyle !== true) {
+      _injectStyle(this.settings.containerId, this.settings.classPrefix, this.settings.transitionSpeed);
+    }
 
     // Allows for chaining with `enable()`.
     return this;
