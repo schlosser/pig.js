@@ -59,7 +59,7 @@
        */
       reEnable: function() {
         window.addEventListener('resize', resize);
-      },
+      }
     };
   }());
 
@@ -210,6 +210,63 @@
        *   to use a <figure></figure> tag.
        */
       figureTagName: 'figure',
+
+      /**
+       * Type: string
+       * Default: 'group'
+       * Description: The tag name to use for each group. The default setting is
+       *   to use a <group></group> tag.
+       */
+      groupTagName: 'group',
+
+      /**
+       * Type: string
+       * Default: 'groupheadline'
+       * Description: The tag name to use for each group headline. The default setting is
+       *   to use a <groupheadline></groupheadline> tag.
+       */
+      groupHeadlineTagName: 'groupheadline',
+
+      /**
+       * Type: boolean
+       * Default: false
+       * Description: Enables/disables the group headline, the default is false.
+       */
+      enableGroupHeadline: false,
+
+      /**
+       * Type: boolean
+       * Default: false
+       * Description: True: Start a new row per group.
+       *              False: Try to fit multiple groups into one row. If a group requires
+       *                     more than one row, fallback to start with a new row for this group.
+       */
+      newRowPerGroup: true,
+
+      /**
+       * Type: number
+       * Default: 'groupHeadlineHeight'
+       * Description: The height of the group headline in pixel. The default is 48px.
+       */
+      groupHeadlineHeight: 48,
+
+      /**
+       * Get the HTML code for a group headline.
+       *
+       * @param {Number} groupid - The id of the group. This id is equal to the id given in the imageData.
+       *
+       * @returns {String} The HTML code for the group headline.
+       */
+      getGroupHeadlineHTML: function(groupid) {
+        return '<h2>' + groupid + '</h2>';
+      },
+
+      /**
+       * Type: Number
+       * Default: 64
+       * Description: Size in pixels of the gap between groups in one row. This setting is only used if enableGroupHeadline == true.
+       */
+      spaceBetweenGroups: 64,
 
       /**
        * Type: Number
@@ -391,16 +448,21 @@
    *                                      instances that we created.
    */
   Pig.prototype._parseImageData = function(imageData) {
-    var progressiveImages = [];
+    var progressiveGroups = [];
 
-    imageData.forEach(function(image, index) {
-      var progressiveImage = new ProgressiveImage(image, index, this);
-      progressiveImages.push(progressiveImage);
+    imageData.forEach(function(group, gindex) {
+      var progressive_group = new ProgressiveGroup(group.groupid, gindex, this);
+
+      group.images.forEach(function(image, index) {
+        var progressiveImage = new ProgressiveImage(image, index, this, progressive_group);
+        progressive_group.addImage(progressiveImage);
+      }.bind(this));
+
+      progressiveGroups.push(progressive_group);
     }.bind(this));
 
-    return progressiveImages;
+    return progressiveGroups;
   };
-
   /**
    * This computes the layout of the entire grid, setting the height, width,
    * translateX, translateY, and transtion values for each ProgessiveImage in
@@ -421,9 +483,9 @@
     var wrapperWidth = parseInt(this.container.clientWidth);
 
     // State
-    var row = [];           // The list of images in the current row.
-    var translateX = 0;     // The current translateX value that we are at
-    var translateY = 0;     // The current translateY value that we are at
+    var row = []; // The list of images in the current row.
+    var translateX = 0; // The current translateX value that we are at
+    var translateY = 0; // The current translateY value that we are at
     var rowAspectRatio = 0; // The aspect ratio of the row we are building
 
     // Compute the minimum aspect ratio that should be applied to the rows.
@@ -446,62 +508,152 @@
 
     // Get the valid-CSS transition string.
     var transition = this._getTransitionString();
+    var rows = [];
 
     // Loop through all our images, building them up into rows and computing
     // the working rowAspectRatio.
-    [].forEach.call(this.images, function(image, index) {
-      rowAspectRatio += parseFloat(image.aspectRatio);
-      row.push(image);
+    [].forEach.call(this.images, function(group, gindex) {
+      var self = this;
+      //either get the aspect ratio of the group or take a real big value
+      var next_group_aspect_ratio = gindex + 1 < this.images.length ? this.images[gindex + 1].getAspectRatio() : 1000;
 
-      // When the rowAspectRatio exceeeds the minimum acceptable aspect ratio,
-      // or when we're out of images, we say that we have all the images we
-      // need for this row, and compute the style values for each of these
-      // images.
-      if (rowAspectRatio >= this.minAspectRatio || index + 1 === this.images.length) {
+      [].forEach.call(group.images, function(image, index) {
+        var self = this;
+        rowAspectRatio += parseFloat(image.aspectRatio);
+        row.push(image);
 
-        // Make sure that the last row also has a reasonable height
-        rowAspectRatio = Math.max(rowAspectRatio, this.minAspectRatio);
-        
-        // Compute this row's height.
-        var totalDesiredWidthOfImages = wrapperWidth - this.settings.spaceBetweenImages * (row.length - 1);
-        var rowHeight = totalDesiredWidthOfImages / rowAspectRatio;
 
-        // For each image in the row, compute the width, height, translateX,
-        // and translateY values, and set them (and the transition value we
-        // found above) on each image.
-        //
-        // NOTE: This does not manipulate the DOM, rather it just sets the
-        //       style values on the ProgressiveImage instance. The DOM nodes
-        //       will be updated in _doLayout.
-        row.forEach(function(img) {
+        var last_group_row = index + 1 === group.images.length;
+        var last_global_row = last_group_row && gindex == this.images.length;
+        // Either we have enabled a new row per group, the row aspect ratio
+        // plus the next group aspect ratio is greater than the allowed aspect ratio
+        // or the current row belongs to a group that occupies multiple rows
+        var new_row_for_next_group = this.settings.newRowPerGroup ||
+            (rowAspectRatio + next_group_aspect_ratio) >= this.minAspectRatio ||
+            translateY !== 0;
+        var out_of_images = last_global_row || (last_group_row && new_row_for_next_group);
 
-          var imageWidth = rowHeight * img.aspectRatio;
+        // When the rowAspectRatio exceeds the minimum acceptable aspect ratio,
+        // or when we're out of images, we say that we have all the images we
+        // need for this row, and compute the style values for each of these
+        // images.
+        if (rowAspectRatio >= this.minAspectRatio || out_of_images) {
+          // count the number of groups in this row
+          var groups_in_row = row.reduce(function (groups, current) {
+            if (groups.indexOf(current.getGroupIndex()) === -1) {
+              groups.push(current.getGroupIndex());
+            }
 
-          // This is NOT DOM manipulation.
-          img.style = {
-            width: parseInt(imageWidth),
-            height: parseInt(rowHeight),
-            translateX: translateX,
-            translateY: translateY,
-            transition: transition,
-          };
+            return groups;
+          }, []).length;
 
-          // The next image is this.settings.spaceBetweenImages pixels to the
-          // right of this image.
-          translateX += imageWidth + this.settings.spaceBetweenImages;
+          // Make sure that the last row also has a reasonable height
+          rowAspectRatio = Math.max(rowAspectRatio, this.minAspectRatio);
 
-        }.bind(this));
+          // Compute this row's height.
+          var totalDesiredWidthOfImages = wrapperWidth - this.settings.spaceBetweenImages * (row.length - 1) -
+              this.settings.spaceBetweenGroups * (groups_in_row - 1);
+          var rowHeight = totalDesiredWidthOfImages / rowAspectRatio;
 
-        // Reset our state variables for next row.
-        row = [];
-        rowAspectRatio = 0;
-        translateY += parseInt(rowHeight) + this.settings.spaceBetweenImages;
-        translateX = 0;
-      }
+          // For each image in the row, compute the width, height, translateX,
+          // and translateY values, and set them (and the transition value we
+          // found above) on each image.
+          //
+          // NOTE: This does not manipulate the DOM, rather it just sets the
+          //       style values on the ProgressiveImage instance. The DOM nodes
+          //       will be updated in _doLayout.
+          var last_group_index = row[0].getGroupIndex();
+          row.forEach(function(img) {
+            var imageWidth = rowHeight * img.aspectRatio;
+
+            // If we start with a new group in the row, reset the translateX
+            if (last_group_index !== img.getGroupIndex()) {
+              translateX = 0;
+              last_group_index = img.getGroupIndex();
+            }
+
+            // This is NOT DOM manipulation.
+            img.style = {
+                width: parseInt(imageWidth),
+                height: parseInt(rowHeight),
+                translateX: translateX,
+                translateY: translateY,
+                transition: transition
+            };
+
+            // The next image is this.settings.spaceBetweenImages pixels to the
+            // right of this image.
+            translateX += imageWidth + this.settings.spaceBetweenImages;
+          }.bind(self));
+
+          rows.push(row);
+          // Reset our state variables for next row.
+          row = [];
+          rowAspectRatio = 0;
+          translateY += parseInt(rowHeight) + this.settings.spaceBetweenImages;
+          translateX = 0;
+        }
+      }.bind(self));
+
+      translateY = 0;
+    }.bind(this));
+
+    // Now we iterate over all generated rows and update the corresponding groups.
+    // This means we set the width, height, top and left of each group.
+    var group_top = 0;
+    rows.forEach(function(row, rindex) {
+      var seen_groups = [];
+      var group_width = 0;
+      var row_height = 0;
+      var group_left = 0;
+      var last_row = rindex + 1 === rows.length;
+      var group_top_updated_for_row = false;
+      var self = this;
+      row.forEach(function(img, index) {
+        var last_row_img = index + 1 === row.length + 1;
+        var last_global_img = last_row_img && last_row;
+
+        row_height = img.style.height + (last_row ? 0 : this.settings.spaceBetweenImages);
+
+        // If we did not have seen this group in this row already, we have to set some variables:
+        // First, we update the group_left value, if we got multiple groups per row, we need to move them
+        // to the right, so that they do not overlap each other.
+        // Second, we reset the group_width, because we start with a new group.
+        // Third, we update the height of the group.
+        if (seen_groups.indexOf(img.getGroupIndex()) === -1) {
+          group_left += group_width + (group_width === 0 ? 0 : this.settings.spaceBetweenGroups - this.settings.spaceBetweenImages);
+          group_width = 0;
+          seen_groups.push(img.getGroupIndex());
+          img.getGroup().style.height += row_height;
+        }
+
+        group_width += img.style.width + (last_row_img ? 0 : this.settings.spaceBetweenImages);
+
+        img.getGroup().style.width = Math.max(img.getGroup().style.width, group_width);
+
+        img.getGroup().style.left = group_left;
+
+        // Now we need to update the group top value.
+        // But, as we can have one group in multiple rows, we only want to update the top of the group once.
+        // So, we first check that the current group top is equal to 0 and then we check that either we have group headlines enabled
+        // or that the current group is not the first group.
+        if (img.getGroup().style.top === 0 && (this.settings.groupHeadlineHeight || img.getGroupIndex() > 0)) {
+          // We only update the group_top once per row, because when we have multiple groups in one row,
+          // all should start at the same top.
+          if (!group_top_updated_for_row) {
+            group_top += (this.settings.enableGroupHeadline ? this.settings.groupHeadlineHeight : 0);
+            group_top_updated_for_row = true;
+          }
+
+          img.getGroup().style.top = group_top;
+        }
+      }.bind(self));
+
+      group_top += row_height;
     }.bind(this));
 
     // No space below the last image
-    this.totalHeight = translateY - this.settings.spaceBetweenImages;
+    this.totalHeight = group_top - this.settings.spaceBetweenImages;
   };
 
 
@@ -596,16 +748,8 @@
 
     // Here, we loop over every image, determine if it is inside our buffers or
     // no, and either insert it or remove it appropriately.
-    this.images.forEach(function(image) {
-
-      if (image.style.translateY + image.style.height < minTranslateYPlusHeight ||
-            image.style.translateY > maxTranslateY) {
-        // Hide Image
-        image.hide();
-      } else {
-        // Load Image
-        image.load();
-      }
+    this.images.forEach(function(group) {
+      group.updateVisibility(minTranslateYPlusHeight, maxTranslateY);
     }.bind(this));
   };
 
@@ -684,6 +828,174 @@
   };
 
   /**
+   * This class manages a single group, a group contains one to multiple images.
+   * It keeps track of the group's height, width, and position in the grid.
+   *
+   * However, this element may or may not actually exist in the DOM. The actual
+   * DOM element may loaded and unloaded depending on where it is with respect
+   * to the viewport. This class is responsible for managing the DOM elements.
+   *
+   * @param {number} groupid - This id is equal to the id given by the user in the image data.
+   * @param {index} index - The index of the group in the pig.images array.
+   * @param {object} pig - The pig instance.
+   */
+  function ProgressiveGroup(groupid, index, pig) {
+    this.groupid = groupid;
+    this.index = index;
+    this.images = [];
+    this.pig = pig;
+
+    this.classNames = {
+      group: pig.settings.classPrefix + '-group',
+      headline: pig.settings.classPrefix + 'group-headline'
+    };
+
+    this.existsOnPage = false;
+
+    if (pig.settings.enableGroupHeadline) {
+      this.createHeadline();
+    }
+
+    this.style = {
+      width: 0,
+      height: 0,
+      top: 0,
+      left: 0
+    };
+  }
+
+  /**
+   * Adds an image to this group.
+   */
+  ProgressiveGroup.prototype.addImage = function(image) {
+    this.images.push(image);
+  };
+
+  /**
+   * Computes the aspect ratio of the whole group.
+   *
+   * @returns {number} The aspect ratio of this group.
+   */
+  ProgressiveGroup.prototype.getAspectRatio = function() {
+    var aspect_ratio = 0.0;
+    this.images.forEach(function(image) {
+      aspect_ratio += parseFloat(image.aspectRatio);
+    });
+
+    return aspect_ratio;
+  };
+
+  /**
+   * Returns the index of this group.
+   *
+   * @returns {number} The index of this group in the pig.images array.
+   */
+  ProgressiveGroup.prototype.getIndex = function() {
+    return this.index;
+  };
+
+  /**
+   * Checks if this group is currently visible/invisible in the viewport.
+   * If the group is visible in the current viewport, the dom element is
+   * added to the root dom element, otherwise the group dom element is removed.
+   * This function also calls the updateVisibility function of all images, but
+   * only if the group itself is visible.
+   *
+   * @param {number} miny - The top of the viewport.
+   * @param {number} maxy - The bottom of the viewport.
+   */
+  ProgressiveGroup.prototype.updateVisibility = function(miny, maxy) {
+    var top = this.style.top;
+    var top_plus_height = this.style.height + top;
+
+    if (this.headline) {
+      top -= this.pig.settings.groupHeadlineHeight;
+    }
+
+    if (top <= maxy && top_plus_height >= miny) {
+      this.load();
+      this.images.forEach(function(img) { img.updateVisibility(miny - top, maxy - top); });
+    } else {
+      this.hide();
+    }
+  };
+
+  /**
+   * Get the DOM element associated with this ProgressiveGroup. We default to
+   * using this.element, and we create it if it doesn't exist.
+   *
+   * @returns {HTMLElement} The DOM element associated with this instance.
+   */
+  ProgressiveGroup.prototype.getElement = function() {
+    if (!this.element) {
+      this.element = document.createElement(this.pig.settings.groupTagName);
+      this.element.className = this.classNames.group;
+
+      if (this.headline) {
+        this.element.appendChild(this.headline);
+      }
+
+      this._updateStyles();
+    }
+
+    return this.element;
+  };
+
+  /**
+   * Creates the headline for this group.
+   */
+  ProgressiveGroup.prototype.createHeadline = function() {
+    if (!this.headline) {
+      this.headline = document.createElement(this.pig.settings.groupHeadlineTagName);
+      this.headline.className = this.classNames.headline;
+    }
+  };
+
+  /**
+   * Updates the style attribute to reflect this style property on this object.
+   */
+  ProgressiveGroup.prototype._updateStyles = function() {
+    this.getElement().style.position = 'absolute';
+    this.getElement().style.width = this.style.width + 'px';
+    this.getElement().style.height = this.style.height + 'px';
+    this.getElement().style.top = this.style.top + 'px';
+    this.getElement().style.left = this.style.left + 'px';
+
+    if (this.headline) {
+      var height = this.pig.settings.groupHeadlineHeight;
+
+      this.headline.style.minWidth = '100%';
+      this.headline.style.height = height + 'px';
+      this.headline.style.top = '-' + height + 'px';
+      this.headline.innerHTML = this.pig.settings.getGroupHeadlineHTML(this.groupid);
+      this.headline.style.position = 'absolute';
+    }
+  };
+
+  /**
+   * Loads this group into the DOM.
+   */
+  ProgressiveGroup.prototype.load = function() {
+    if (!this.existsOnPage) {
+      this.pig.container.appendChild(this.getElement());
+      this._updateStyles();
+    }
+
+    this.existsOnPage = true;
+  };
+
+  /**
+   * Unloads this group from the DOM.
+   */
+  ProgressiveGroup.prototype.hide = function() {
+    if (this.existsOnPage) {
+      this.pig.container.removeChild(this.getElement());
+    }
+
+    this.existsOnPage = false;
+  };
+
+  /**
    * This class manages a single image. It keeps track of the image's height,
    * width, and position in the grid. An instance of this class is associated
    * with a single image figure, which looks like this:
@@ -695,9 +1007,7 @@
    *
    * However, this element may or may not actually exist in the DOM. The actual
    * DOM element may loaded and unloaded depending on where it is with respect
-   * to the viewport. This class is responsible for managing the DOM elements,
-   * but does not include logic to determine _when_ the DOM elements should
-   * be removed.
+   * to the viewport. This class is responsible for managing the DOM elements.
    *
    * This class also manages the blur-into-focus load effect.  First, the
    * <figure> element is inserted into the page. Then, a very small thumbnail
@@ -713,9 +1023,9 @@
    * @param {string} singleImageData[0].filename - The filename of the image.
    * @param {string} singleImageData[0].aspectRatio - The aspect ratio of the
    *                                                  image.
+   * @param {object} group - The group this image belongs to.
    */
-  function ProgressiveImage(singleImageData, index, pig) {
-
+  function ProgressiveImage(singleImageData, index, pig, group) {
     // Global State
     this.existsOnPage = false; // True if the element exists on the page.
 
@@ -727,14 +1037,45 @@
     // The Pig instance
     this.pig = pig;
 
+    // The group the image belongs to
+    this.group = group;
+
     this.classNames = {
       figure: pig.settings.classPrefix + '-figure',
       thumbnail: pig.settings.classPrefix + '-thumbnail',
-      loaded: pig.settings.classPrefix + '-loaded',
+      loaded: pig.settings.classPrefix + '-loaded'
     };
 
     return this;
   }
+
+  /**
+   * Returns the index of the group this image belongs to.
+   */
+  ProgressiveImage.prototype.getGroupIndex = function() {
+    return this.group.getIndex();
+  };
+
+  /**
+   * Returns the group this image belongs to.
+   */
+  ProgressiveImage.prototype.getGroup = function() {
+    return this.group;
+  };
+
+  /**
+   * Updates the visibility of this image.
+   *
+   * @param {number} miny - The top of the viewport.
+   * @param {number} maxy - The bottom of the viewport.
+   */
+  ProgressiveImage.prototype.updateVisibility = function(miny, maxy) {
+    if (this.style.translateY <= maxy && this.style.translateY + this.style.height >= miny) {
+      this.load();
+    } else {
+      this.hide();
+    }
+  };
 
   /**
    * Load the image element associated with this ProgressiveImage into the DOM.
@@ -748,7 +1089,7 @@
     // is done using transforms.
     this.existsOnPage = true;
     this._updateStyles();
-    this.pig.container.appendChild(this.getElement());
+    this.group.getElement().appendChild(this.getElement());
 
     // We run the rest of the function in a 100ms setTimeout so that if the
     // user is scrolling down the page very fast and hide() is called within
@@ -821,11 +1162,10 @@
 
     // Remove the image from the DOM.
     if (this.existsOnPage) {
-      this.pig.container.removeChild(this.getElement());
+      this.group.getElement().removeChild(this.getElement());
     }
 
     this.existsOnPage = false;
-
   };
 
   /**
