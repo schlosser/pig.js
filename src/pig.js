@@ -592,7 +592,7 @@
 
     // This is the bottom of the bottom buffer.  If the top of an image is
     // below this line, it will be removed.
-    var maxTranslateY = this.latestYOffset + windowHeight + bufferBottom;
+    var maxTranslateY = this.latestYOffset - containerOffset + windowHeight + bufferBottom;
 
     // Here, we loop over every image, determine if it is inside our buffers or
     // no, and either insert it or remove it appropriately.
