@@ -7,7 +7,7 @@ Progressive Image Grid (`pig.js`)
 
 Arrange images in a responsive, progressive-loading grid managed in JavaScript using CSS transforms, with one lightweight library. Here's what you get:
 
-1. **Performance**: The `pig.js` grid specializes in displaying a large number of photos. While a more traditional approaches would paginate images, or use AJAX to load and insert buckets of additional images onto the page, `pig.js` intelligently loads and unloads images as you scroll down the page, to ensure ensure speedy rendering of images, smooth scrolling, and minimal network activitiy. 
+1. **Performance**: The `pig.js` grid specializes in displaying a large number of photos. While a more traditional approaches would paginate images, or use AJAX to load and insert buckets of additional images onto the page, `pig.js` intelligently loads and unloads images as you scroll down the page, to ensure ensure speedy rendering of images, smooth scrolling, and minimal network activitiy.
 2. **Responsiveness**: Images are loaded in JavaScript, at different resolutions depending on screen size. Also, because images are positioned using CSS transforms, images smartly re-tile when you shrink or expand the browser window.
 3. **User Experience**: Images are previewed with a small placeholder image that is scaled and blured.  When the image loads, it gives the effect that the image was brought into focus (it's super cool!).
 
@@ -33,7 +33,7 @@ If you want to see `pig.js` in action, check out the site that motivated it in t
 
 #### Step 2: Create a structure to serve your images
 
-Pig includes by default an easy method for handling responsive images at different screen sizes.  By default, Pig will attempt to request images with size (height in pixels) 100, 250, and 500.  It will also request a thumbnail 20px tall, which is used to create an effect of the blurred image coming into focus. 
+Pig includes by default an easy method for handling responsive images at different screen sizes.  By default, Pig will attempt to request images with size (height in pixels) 100, 250, and 500.  It will also request a thumbnail 20px tall, which is used to create an effect of the blurred image coming into focus.
 
 ###### Example: Serving Static Files
 
@@ -75,7 +75,7 @@ var options = {
   urlForSize: function(filename, size) {
     return '/img/' + size + '/' + filename;
   },
-  // ... 
+  // ...
 };
 ```
 
@@ -95,10 +95,10 @@ var options = {
   urlForSize: function(filename, size) {
     return '/img/' + size + '/' + filename;
   },
-  // ... 
+  // ...
 };
 
-var pig = new Pig().enable(imageData, options);
+var pig = new Pig(imageData, options).enable();
 ```
 
 ## API
@@ -128,7 +128,7 @@ var pig = new Pig(imageData, options);
 
 #### `options` _(object)_
 
-You can customize the instance by passing the `options` parameter. The example below uses all options and their defaults: 
+You can customize the instance by passing the `options` parameter. The example below uses all options and their defaults:
 
 ```javascript
 var imageData = [ /* ... */ ];
@@ -209,7 +209,7 @@ Height in pixels of images to preload in the direction that the user is NOT scro
 #### `options.thumbnailSize` _(number)_
 
 The height in pixels of the thumbnail that should be loaded and blurred to give the effect that images are loading out of focus and then coming into focus.
-  
+
 > **Default**: `20`
 
 #### `options.urlForSize` _(function)_
@@ -219,11 +219,11 @@ Get the URL for an image with the given filename & size.
 > **Parameters**:
 >  - `filename` _(string)_ - The filename of the image.
 >  - `size` _(number)_ - The size (height in pixels) of the image.
-> 
+>
 > **Returns**:
 > - _(string)_ - The URL of the image at the given size.
-> 
-> **Default**: 
+>
+> **Default**:
 > ```javascript
 > function(filename, size) {
 >   return '/img/' + size + '/' + filename;
@@ -236,11 +236,11 @@ Get the minimum required aspect ratio for a valid row of images. The perfect row
 
 > **Parameters**:
 > - `lastWindowWidth` _(number)_ - The last computed width of the browser window.
-> 
-> **Returns**: 
+>
+> **Returns**:
 > - _(number)_ - The minimum aspect ratio at this window width.
-> 
-> **Default**: 
+>
+> **Default**:
 > ```javascript
 > function(lastWindowWidth) {
 >   if (lastWindowWidth <= 640)  // Phones
@@ -260,11 +260,11 @@ Get the image size (height in pixels) to use for this window width. Responsive r
 
 > **Parameters**:
 > - `lastWindowWidth` _(number)_ - The last computed width of the browser window.
-> 
-> **Returns**: 
+>
+> **Returns**:
 > - _(number)_ - The size (height in pixels) of the images to load.
-> 
-> **Default**: 
+>
+> **Default**:
 > ```javascript
 > function(lastWindowWidth) {
 >   if (lastWindowWidth <= 640)  // Phones
