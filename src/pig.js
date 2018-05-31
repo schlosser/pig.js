@@ -73,9 +73,9 @@
   function _injectStyle(containerId, classPrefix, transitionSpeed) {
 
     var css = (
-      'body {' + 
+      'body {' +
       '  overflow-y: scroll;' +
-      '}' + 
+      '}' +
       '#' + containerId + ' {' +
       '  position: relative;' +
       '}' +
@@ -464,7 +464,7 @@
 
         // Make sure that the last row also has a reasonable height
         rowAspectRatio = Math.max(rowAspectRatio, this.minAspectRatio);
-        
+
         // Compute this row's height.
         var totalDesiredWidthOfImages = wrapperWidth - this.settings.spaceBetweenImages * (row.length - 1);
         var rowHeight = totalDesiredWidthOfImages / rowAspectRatio;
@@ -861,11 +861,11 @@
 
   // Export Pig into the global scope.
   if (typeof define === 'function' && define.amd) {
-    define(Pig);
+    define([], function() { return Pig });
   } else if (typeof module !== 'undefined' && module.exports) {
     module.exports = Pig;
   } else {
     global.Pig = Pig;
   }
 
-}(this));
+}(typeof window !== 'undefined' ? window : this));
