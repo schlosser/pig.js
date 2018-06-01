@@ -73,9 +73,6 @@
   function _injectStyle(containerId, classPrefix, transitionSpeed) {
 
     var css = (
-      'body {' +
-      '  overflow-y: scroll;' +
-      '}' +
       '#' + containerId + ' {' +
       '  position: relative;' +
       '}' +
