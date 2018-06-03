@@ -73,9 +73,6 @@
   function _injectStyle(containerId, classPrefix, transitionSpeed) {
 
     var css = (
-      'body {' + 
-      '  overflow-y: scroll;' +
-      '}' + 
       '#' + containerId + ' {' +
       '  position: relative;' +
       '}' +
@@ -197,6 +194,13 @@
        *   be loaded.
        */
       containerId: 'pig',
+
+      /**
+       * Type: window | HTMLElement
+       * Default: window
+       * Description: The window or HTML element that the grid scrolls in.
+       */
+      scroller: window,
 
       /**
        * Type: string
@@ -321,6 +325,8 @@
     if (!this.container) {
       console.error('Could not find element with ID ' + this.settings.containerId);
     }
+
+    this.scroller = this.settings.scroller;
 
     // Our global reference for images in the grid.  Note that not all of these
     // images are necessarily in view or loaded.
@@ -464,7 +470,7 @@
 
         // Make sure that the last row also has a reasonable height
         rowAspectRatio = Math.max(rowAspectRatio, this.minAspectRatio);
-        
+
         // Compute this row's height.
         var totalDesiredWidthOfImages = wrapperWidth - this.settings.spaceBetweenImages * (row.length - 1);
         var rowHeight = totalDesiredWidthOfImages / rowAspectRatio;
@@ -587,7 +593,7 @@
 
     // Now we compute the location of the top and bottom buffers:
     var containerOffset = _getOffsetTop(this.container);
-    var windowHeight = window.innerHeight;
+    var scrollerHeight = this.scroller === window ? window.innerHeight : this.scroller.offsetHeight;
 
     // This is the top of the top buffer. If the bottom of an image is above
     // this line, it will be removed.
@@ -595,7 +601,7 @@
 
     // This is the bottom of the bottom buffer.  If the top of an image is
     // below this line, it will be removed.
-    var maxTranslateY = this.latestYOffset - containerOffset + windowHeight + bufferBottom;
+    var maxTranslateY = this.latestYOffset - containerOffset + scrollerHeight + bufferBottom;
 
     // Here, we loop over every image, determine if it is inside our buffers or
     // no, and either insert it or remove it appropriately.
@@ -634,7 +640,7 @@
     var onScroll = function() {
       // Compute the scroll direction using the latestYOffset and the
       // previousYOffset
-      var newYOffset = window.pageYOffset;
+      var newYOffset = _this.scroller === window ? window.pageYOffset : _this.scroller.scrollTop;
       _this.previousYOffset = _this.latestYOffset || newYOffset;
       _this.latestYOffset = newYOffset;
       _this.scrollDirection = (_this.latestYOffset > _this.previousYOffset) ? 'down' : 'up';
@@ -660,14 +666,15 @@
    */
   Pig.prototype.enable = function() {
     this.onScroll = this._getOnScroll();
-    window.addEventListener('scroll', this.onScroll);
+
+    this.scroller.addEventListener('scroll', this.onScroll);
 
     this.onScroll();
     this._computeLayout();
     this._doLayout();
 
     optimizedResize.add(function() {
-      this.lastWindowWidth = window.innerWidth;
+      this.lastWindowWidth = this.scroller === window ? window.innerWidth : this.scroller.offsetWidth;
       this._computeLayout();
       this._doLayout();
     }.bind(this));
@@ -681,7 +688,7 @@
    * @returns {object} The Pig instance.
    */
   Pig.prototype.disable = function() {
-    window.removeEventListener('scroll', this.onScroll);
+    this.scroller.removeEventListener('scroll', this.onScroll);
     optimizedResize.disable();
     return this;
   };
@@ -861,11 +868,11 @@
 
   // Export Pig into the global scope.
   if (typeof define === 'function' && define.amd) {
-    define(Pig);
+    define([], function() { return Pig });
   } else if (typeof module !== 'undefined' && module.exports) {
     module.exports = Pig;
   } else {
     global.Pig = Pig;
   }
 
-}(this));
+}(typeof window !== 'undefined' ? window : this));
