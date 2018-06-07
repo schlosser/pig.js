@@ -203,6 +203,13 @@
       scroller: window,
 
       /**
+       * Type: ProgressiveImage
+       * Default: ProgressiveImage
+       * Description: The type of object used to represent each image in the grid.
+       */
+      imageType: ProgressiveImage,
+
+      /**
        * Type: string
        * Default: 'pig'
        * Description: The prefix associated with this library that should be
@@ -403,7 +410,7 @@
     var progressiveImages = [];
 
     imageData.forEach(function(image, index) {
-      var progressiveImage = new ProgressiveImage(image, index, this);
+      var progressiveImage = new this.settings.imageType(image, index, this);
       progressiveImages.push(progressiveImage);
     }.bind(this));
 
