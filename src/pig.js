@@ -274,6 +274,15 @@
       },
 
       /**
+       * Get a callback with the filename of the image
+       * which was clicked.
+       *
+       * @param {string} filename - The filename of the image.
+       */
+       onClickHandler: function(filename) {
+       },
+
+      /**
        * Get the minimum required aspect ratio for a valid row of images. The
        * perfect rows are maintained by building up a row of images by adding
        * together their aspect ratios (the aspect ratio when they are placed
@@ -804,6 +813,7 @@
 
         this.getElement().appendChild(this.fullImage);
       }
+
     }.bind(this), 100);
   };
 
@@ -848,11 +858,13 @@
     if (!this.element) {
       this.element = document.createElement(this.pig.settings.figureTagName);
       this.element.className = this.classNames.figure;
+      this.element.addEventListener("click", function (){ this.pig.settings.onClickHandler(this.filename); }.bind(this) );
       this._updateStyles();
     }
 
     return this.element;
   };
+
 
   /**
    * Updates the style attribute to reflect this style property on this object.
@@ -868,7 +880,7 @@
 
   // Export Pig into the global scope.
   if (typeof define === 'function' && define.amd) {
-    define([], function() { return Pig });
+    define([], function() { return Pig; });
   } else if (typeof module !== 'undefined' && module.exports) {
     module.exports = Pig;
   } else {
