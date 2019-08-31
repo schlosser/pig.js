@@ -50,17 +50,17 @@ Create a directory structure like:
 │   |   ├── blue.jpg
 │   |   ├── red.jpg
 │   |   ...
-│   |   
+│   |
 │   ├── 100
 │   |   ├── blue.jpg
 │   |   ├── red.jpg
 │   |   ...
-│   |   
+│   |
 │   ├── 250
 │   |   ├── blue.jpg
 │   |   ├── red.jpg
 │   |   ...
-│   |   
+│   |
 │   └── 500
 │       ├── blue.jpg
 │       ├── red.jpg
@@ -144,6 +144,7 @@ var options = {
   urlForSize: function(filename, size) {
     return '/img/' + size + '/' + filename;
   },
+  onClickHander: function(filename) { },
   getMinAspectRatio: function(lastWindowWidth) {
     if (lastWindowWidth <= 640)  // Phones
       return 2;
@@ -274,6 +275,16 @@ Get the image size (height in pixels) to use for this window width. Responsive r
 >   return 500;  // Large desktops
 > }
 > ```
+
+#### `options.onClickHandler` _(function)_
+
+Add callback function which is called when a image is clicked with the image name. By default this is an empty function.
+
+> **Parameters**
+> - `filename` _(string)_ - The name of the clicked image
+>
+> **Default**
+> function(filename) {}
 
 ### Pig.enable()
 
