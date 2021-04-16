@@ -880,7 +880,7 @@
 
   // Export Pig into the global scope.
   if (typeof define === 'function' && define.amd) {
-    define([], function() { return Pig; });
+    define([], function() { return { Pig: Pig }; });
   } else if (typeof module !== 'undefined' && module.exports) {
     module.exports = Pig;
   } else {
