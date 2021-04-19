@@ -84,7 +84,7 @@
       '  top: 0;' +
       '  margin: 0;' +
       '}' +
-      '.' + classPrefix + '-figure img {' +
+      '.' + classPrefix + '-figure > * {' +
       '  left: 0;' +
       '  position: absolute;' +
       '  top: 0;' +
@@ -94,14 +94,14 @@
       '  transition: ' + (transitionSpeed / 1000) + 's ease opacity;' +
       '  -webkit-transition: ' + (transitionSpeed / 1000) + 's ease opacity;' +
       '}' +
-      '.' + classPrefix + '-figure img.' + classPrefix + '-thumbnail {' +
+      '.' + classPrefix + '-figure > *.' + classPrefix + '-thumbnail {' +
       '  -webkit-filter: blur(30px);' +
       '  filter: blur(30px);' +
       '  left: auto;' +
       '  position: relative;' +
       '  width: auto;' +
       '}' +
-      '.' + classPrefix + '-figure img.' + classPrefix + '-loaded {' +
+      '.' + classPrefix + '-figure > *.' + classPrefix + '-loaded {' +
       '  opacity: 1;' +
       '}'
     );
@@ -201,6 +201,13 @@
        * Description: The window or HTML element that the grid scrolls in.
        */
       scroller: window,
+
+      /**
+       * Type: ProgressiveImage
+       * Default: ProgressiveImage
+       * Description: The type of object used to represent each image in the grid.
+       */
+      imageType: ProgressiveImage,
 
       /**
        * Type: string
@@ -412,7 +419,7 @@
     var progressiveImages = [];
 
     imageData.forEach(function(image, index) {
-      var progressiveImage = new ProgressiveImage(image, index, this);
+      var progressiveImage = new this.settings.imageType(image, index, this);
       progressiveImages.push(progressiveImage);
     }.bind(this));
 
