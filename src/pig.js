@@ -503,8 +503,8 @@
 
           // This is NOT DOM manipulation.
           img.style = {
-            width: parseInt(imageWidth),
-            height: parseInt(rowHeight),
+            width: parseInt(imageWidth, 10),
+            height: parseInt(rowHeight, 10),
             translateX: translateX,
             translateY: translateY,
             transition: transition
@@ -519,7 +519,7 @@
         // Reset our state variables for next row.
         row = [];
         rowAspectRatio = 0;
-        translateY += parseInt(rowHeight) + this.settings.spaceBetweenImages;
+        translateY += parseInt(rowHeight, 10) + this.settings.spaceBetweenImages;
         translateX = 0;
       }
     }.bind(this));
