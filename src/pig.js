@@ -92,8 +92,8 @@
       '  height: 100%;' +
       '  width: 100%;' +
       '  opacity: 0;' +
-      '  transition: ' + (transitionSpeed / 1000) + 's ease opacity;' +
-      '  -webkit-transition: ' + (transitionSpeed / 1000) + 's ease opacity;' +
+      '  transition: ' + (transitionSpeed / 1000).toString(10) + 's ease opacity;' +
+      '  -webkit-transition: ' + (transitionSpeed / 1000).toString(10) + 's ease opacity;' +
       '}' +
       '.' + classPrefix + '-figure img.' + classPrefix + '-thumbnail {' +
       '  -webkit-filter: blur(30px);' +
@@ -273,7 +273,7 @@
        * @returns {string} The URL of the image at the given size.
        */
       urlForSize: function(filename, size) {
-        return '/img/' + size + '/' + filename;
+        return '/img/' + size.toString(10) + '/' + filename;
       },
 
       /**
@@ -379,7 +379,7 @@
    */
   Pig.prototype._getTransitionString = function() {
     if (this.isTransitioning) {
-      return (this.settings.transitionSpeed / 1000) + 's transform ease';
+      return (this.settings.transitionSpeed / 1000).toString(10) + 's transform ease';
     }
 
     return 'none';
@@ -527,7 +527,6 @@
     // No space below the last image
     this.totalHeight = translateY - this.settings.spaceBetweenImages;
   };
-
 
   /**
    * Update the DOM to reflect the style values of each image in the PIG,
@@ -853,7 +852,6 @@
     }
 
     this.existsOnPage = false;
-
   };
 
   /**
