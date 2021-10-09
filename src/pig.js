@@ -66,9 +66,10 @@
   /**
    * Inject CSS needed to make the grid work in the <head></head>.
    *
+   * @param {string} containerId - ID of the container for the images.
    * @param {string} classPrefix - the prefix associated with this library that
    *                               should be prepended to classnames.
-   * @param {string} containerId - ID of the container for the images.
+   * @param {number} transitionSpeed - animation duration in milliseconds
    */
   function _injectStyle(containerId, classPrefix, transitionSpeed) {
 
@@ -111,6 +112,7 @@
 
     style.type = "text/css";
     if (style.styleSheet) {
+      // set style for IE8 and below
       style.styleSheet.cssText = css;
     } else {
       style.appendChild(document.createTextNode(css));
@@ -140,7 +142,8 @@
    * the top of the page.
    *
    * @param {object} elem - The element to compute the offset of.
-   **/
+   * @returns {number} - distance of `elem` to the top of the page
+   */
   function _getOffsetTop(elem){
     let offsetTop = 0;
       do {
@@ -277,7 +280,7 @@
        * Get a callback with the filename of the image
        * which was clicked.
        *
-       * @param {string} filename - The filename of the image.
+       * @param {string} filename - The filename property of the image.
        */
        onClickHandler: function(filename) {
        },
@@ -630,7 +633,7 @@
   /**
    * Create our onScroll handler and return it.
    *
-   * @returns {function} Our optimized onScroll handler.
+   * @returns {function} Our optimized onScroll handler that we should attach to.
    */
   Pig.prototype._getOnScroll = function() {
     const _this = this;
@@ -643,8 +646,6 @@
      * We use the boolean variable _this.inRAF to ensure that we don't overload
      * the number of layouts we perform by starting another layout while we are
      * in the middle of doing one.
-     *
-     * @returns {function} The onScroll handler that we should attach.
      */
     const onScroll = function() {
       // Compute the scroll direction using the latestYOffset and the
@@ -732,6 +733,10 @@
    * @param {string} singleImageData[0].filename - The filename of the image.
    * @param {string} singleImageData[0].aspectRatio - The aspect ratio of the
    *                                                  image.
+   * @param {number} index - Index of the image in the list of images
+   * @param {object} pig - The Pig instance
+   *
+   * @returns {object}  The Pig instance, for easy chaining with the constructor.
    */
   function ProgressiveImage(singleImageData, index, pig) {
 
