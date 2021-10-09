@@ -282,8 +282,7 @@
        *
        * @param {string} filename - The filename property of the image.
        */
-       onClickHandler: function(filename) {
-       },
+      onClickHandler: null,
 
       /**
        * Get the minimum required aspect ratio for a valid row of images. The
@@ -864,7 +863,11 @@
     if (!this.element) {
       this.element = document.createElement(this.pig.settings.figureTagName);
       this.element.className = this.classNames.figure;
-      this.element.addEventListener("click", function (){ this.pig.settings.onClickHandler(this.filename); }.bind(this) );
+      if (this.pig.settings.onClickHandler !== null) {
+        this.element.addEventListener('click', function() {
+          this.pig.settings.onClickHandler(this.filename);
+        }.bind(this) );
+      }
       this._updateStyles();
     }
 
