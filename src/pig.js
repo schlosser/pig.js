@@ -59,7 +59,7 @@
        */
       reEnable: function() {
         window.addEventListener('resize', resize);
-      },
+      }
     };
   }());
 
@@ -110,7 +110,7 @@
     const head = document.head || document.getElementsByTagName('head')[0];
     const style = document.createElement('style');
 
-    style.type = "text/css";
+    style.type = 'text/css';
     if (style.styleSheet) {
       // set style for IE8 and below
       style.styleSheet.cssText = css;
@@ -146,13 +146,13 @@
    */
   function _getOffsetTop(elem){
     let offsetTop = 0;
-      do {
-        if (!isNaN(elem.offsetTop)){
-            offsetTop += elem.offsetTop;
-        }
-        elem = elem.offsetParent;
-      } while(elem);
-      return offsetTop;
+    do {
+      if (!isNaN(elem.offsetTop)){
+        offsetTop += elem.offsetTop;
+      }
+      elem = elem.offsetParent;
+    } while(elem);
+    return offsetTop;
   }
 
   /**
@@ -300,12 +300,13 @@
        * @returns {Number} The minimum aspect ratio at this window width.
        */
       getMinAspectRatio: function(lastWindowWidth) {
-        if (lastWindowWidth <= 640)
+        if (lastWindowWidth <= 640) {
           return 2;
-        else if (lastWindowWidth <= 1280)
+        } else if (lastWindowWidth <= 1280) {
           return 4;
-        else if (lastWindowWidth <= 1920)
+        } else if (lastWindowWidth <= 1920) {
           return 5;
+        }
         return 6;
       },
 
@@ -321,10 +322,11 @@
        * @returns {Number} The size (height in pixels) of the images to load.
        */
       getImageSize: function(lastWindowWidth) {
-        if (lastWindowWidth <= 640)
+        if (lastWindowWidth <= 640) {
           return 100;
-        else if (lastWindowWidth <= 1920)
+        } else if (lastWindowWidth <= 1920) {
           return 250;
+        }
         return 500;
       }
     };
@@ -393,10 +395,11 @@
     const oldMinAspectRatio = this.minAspectRatio;
     this.minAspectRatio = this.settings.getMinAspectRatio(this.lastWindowWidth);
 
-    if (oldMinAspectRatio !== null && oldMinAspectRatio !== this.minAspectRatio)
+    if (oldMinAspectRatio !== null && oldMinAspectRatio !== this.minAspectRatio) {
       this.minAspectRatioRequiresTransition = true;
-    else
+    } else {
       this.minAspectRatioRequiresTransition = false;
+    }
   };
 
   /**
@@ -504,7 +507,7 @@
             height: parseInt(rowHeight),
             translateX: translateX,
             translateY: translateY,
-            transition: transition,
+            transition: transition
           };
 
           // The next image is this.settings.spaceBetweenImages pixels to the
@@ -596,12 +599,12 @@
     // Get the top and bottom buffers heights.
     const bufferTop =
       (this.scrollDirection === 'up') ?
-      this.settings.primaryImageBufferHeight :
-      this.settings.secondaryImageBufferHeight;
+        this.settings.primaryImageBufferHeight :
+        this.settings.secondaryImageBufferHeight;
     const bufferBottom =
       (this.scrollDirection === 'down') ?
-      this.settings.secondaryImageBufferHeight :
-      this.settings.primaryImageBufferHeight;
+        this.settings.secondaryImageBufferHeight :
+        this.settings.primaryImageBufferHeight;
 
     // Now we compute the location of the top and bottom buffers:
     const containerOffset = _getOffsetTop(this.container);
@@ -754,7 +757,7 @@
     this.classNames = {
       figure: pig.settings.classPrefix + '-figure',
       thumbnail: pig.settings.classPrefix + '-thumbnail',
-      loaded: pig.settings.classPrefix + '-loaded',
+      loaded: pig.settings.classPrefix + '-loaded'
     };
 
     return this;
