@@ -641,7 +641,7 @@
      * the number of layouts we perform by starting another layout while we are
      * in the middle of doing one.
      */
-    const onScroll = function() {
+     const onScroll = () => {
       // Compute the scroll direction using the latestYOffset and the
       // previousYOffset
       const newYOffset = _this.scroller === window ? window.pageYOffset : _this.scroller.scrollTop;
@@ -652,7 +652,7 @@
       // Call _this.doLayout, guarded by window.requestAnimationFrame
       if (!_this.inRAF) {
         _this.inRAF = true;
-        window.requestAnimationFrame(function() {
+        window.requestAnimationFrame(() => {
           _this._doLayout();
           _this.inRAF = false;
         });
