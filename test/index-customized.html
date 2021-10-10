@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Progressive Image Grid: pig.js</title>
+    <style type="text/css">
+        body {
+            padding: 2rem;
+        }
+
+        /* Tests that the container works even if it has a relative parent
+         * lower than the page.
+         */
+        .pig-wrapper {
+            position: relative;
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Scroll to see some images...</h1>
+    <div class="pig-wrapper">
+        <div id="pig"></div>
+    </div>
+    <script type="module">
+import { Pig, ProgressiveImage } from '../src/pig.js';
+
+const imageData = [
+  {"filename":"2015-01-01.14.24.49.jpg","aspectRatio":1.7777, imageDate: '14.04.2019', description: 'all done...'},
+  {"filename":"2015-01-01.19.47.28.jpg","aspectRatio":1.7777, imageDate: '14.04.2019', description: 'salad'},
+  {"filename":"2015-01-01.21.11.37.jpg","aspectRatio":1.7777, imageDate: '14.04.2019', description: 'cookies'},
+  {"filename":"2015-01-02.20.03.26.jpg","aspectRatio":1.7777, imageDate: '14.04.2019', description: 'finished'},
+  {"filename":"2015-01-02.23.19.25.jpg","aspectRatio":0.5625, imageDate: '15.04.2019', description: 'icecream for me'},
+  {"filename":"2015-01-03.20.12.35.jpg","aspectRatio":0.5625, imageDate: '15.04.2019', description: 'current food 1'},
+  {"filename":"2015-01-03.21.18.58.jpg","aspectRatio":0.5625, imageDate: '15.04.2019', description: 'current food 2'},
+  {"filename":"2015-01-04.12.39.47.jpg","aspectRatio":1.7777, imageDate: '16.04.2019', description: 'current food 3'},
+  {"filename":"2015-01-04.18.50.00.jpg","aspectRatio":0.5625, imageDate: '16.04.2019', description: 'current food 4'},
+  {"filename":"2015-01-04.19.32.52.jpg","aspectRatio":1.7777, imageDate: '16.04.2019', description: 'current food 5'},
+  {"filename":"2015-01-05.12.16.10.jpg","aspectRatio":1.7777, imageDate: '16.04.2019', description: 'current food 6'},
+  {"filename":"2015-01-05.14.40.19.jpg","aspectRatio":1.7777, imageDate: '16.04.2019', description: 'current food 7'},
+  {"filename":"2015-01-05.17.56.32.jpg","aspectRatio":1.7777, imageDate: '17.04.2019', description: 'current food 8'},
+  {"filename":"2015-01-05.19.06.48.jpg","aspectRatio":1.7777, imageDate: '17.04.2019', description: 'current food 9'},
+  {"filename":"2015-01-05.21.08.16.jpg","aspectRatio":1.7777, imageDate: '17.04.2019', description: 'current food 10'},
+  {"filename":"2015-01-05.21.36.36.jpg","aspectRatio":1.7777, imageDate: '17.04.2019', description: 'current food 11'},
+  {"filename":"2015-01-05.23.29.58.jpg","aspectRatio":1.7777, imageDate: '17.04.2019', description: 'current food 12'},
+  {"filename":"2015-01-06.14.00.38.jpg","aspectRatio":1.7777, imageDate: '18.04.2019', description: 'current food 13'},
+  {"filename":"2015-01-06.16.14.09.jpg","aspectRatio":1.7777, imageDate: '18.04.2019', description: 'current food 14'},
+  {"filename":"2015-01-06.20.02.47.jpg","aspectRatio":1.7777, imageDate: '18.04.2019', description: 'current food 15'},
+  {"filename":"2015-01-07.12.26.32.jpg","aspectRatio":1.7777, imageDate: '18.04.2019', description: 'current food 16'},
+  {"filename":"2015-01-07.16.12.08.jpg","aspectRatio":1.7777, imageDate: '19.04.2019', description: 'current food 17'},
+  {"filename":"2015-01-07.20.54.23.jpg","aspectRatio":1.7777, imageDate: '19.04.2019', description: 'current food 18'},
+  {"filename":"2015-01-07.22.41.42.jpg","aspectRatio":1.7777, imageDate: '19.04.2019', description: 'current food 19'},
+  {"filename":"2015-01-08.14.01.19.jpg","aspectRatio":1.7777, imageDate: '19.04.2019', description: 'current food 20'},
+  {"filename":"2015-01-08.15.22.05.jpg","aspectRatio":1.7777, imageDate: '19.04.2019', description: 'current food 21'},
+  {"filename":"2015-01-08.18.40.19.jpg","aspectRatio":0.5625, imageDate: '19.04.2019', description: 'current food 22'},
+  {"filename":"2015-01-08.18.48.42.jpg","aspectRatio":1.7777, imageDate: '20.04.2019', description: 'current food 23'},
+  {"filename":"2015-01-08.19.08.11.jpg","aspectRatio":1.7777, imageDate: '20.04.2019', description: 'current food 24'},
+  {"filename":"2015-01-08.20.01.03.jpg","aspectRatio":0.5625, imageDate: '20.04.2019', description: 'current food 25'},
+  {"filename":"2015-01-09.01.19.48.jpg","aspectRatio":1.7777, imageDate: '20.04.2019', description: 'current food 26'},
+  {"filename":"2015-01-09.14.13.40.jpg","aspectRatio":1.7777, imageDate: '20.04.2019', description: 'current food 27'},
+  {"filename":"2015-01-09.17.43.45.jpg","aspectRatio":1.7777, imageDate: '20.04.2019', description: 'current food 28'},
+  {"filename":"2015-01-09.21.28.30.jpg","aspectRatio":1.7777, imageDate: '20.04.2019', description: 'current food 29'},
+  {"filename":"2015-01-09.21.38.51.jpg","aspectRatio":0.5625, imageDate: '21.04.2019', description: 'current food 30'},
+  {"filename":"2015-01-10.10.40.38.jpg","aspectRatio":1.7777, imageDate: '21.04.2019', description: 'current food 31'},
+  {"filename":"2015-01-10.17.53.06.jpg","aspectRatio":1.7777, imageDate: '21.04.2019', description: 'current food 32'},
+  {"filename":"2015-01-10.18.40.13.jpg","aspectRatio":1.7777, imageDate: '21.04.2019', description: 'current food 33'},
+  {"filename":"2015-01-10.19.40.47.jpg","aspectRatio":0.5625, imageDate: '22.04.2019', description: 'current food 34'},
+  {"filename":"2015-01-10.22.02.47.jpg","aspectRatio":1.7777, imageDate: '22.04.2019', description: 'current food 35'},
+  {"filename":"2015-01-11.13.53.35.jpg","aspectRatio":1.7777, imageDate: '22.04.2019', description: 'current food 36'},
+  {"filename":"2015-01-11.19.19.52.jpg","aspectRatio":1.7777, imageDate: '22.04.2019', description: 'current food 37'},
+  {"filename":"2015-01-12.11.10.55.jpg","aspectRatio":1.7777, imageDate: '22.04.2019', description: 'current food 38'},
+  {"filename":"2015-01-12.15.33.35.jpg","aspectRatio":1.7777, imageDate: '22.04.2019', description: 'current food 39'},
+  {"filename":"2015-01-12.20.15.13.jpg","aspectRatio":1.7777, imageDate: '23.04.2019', description: 'current food 40'},
+  {"filename":"2015-01-13.14.48.14.jpg","aspectRatio":1.7777, imageDate: '23.04.2019', description: 'current food 41'},
+  {"filename":"2015-01-13.19.21.19.jpg","aspectRatio":1.7777, imageDate: '23.04.2019', description: 'current food 42'},
+  {"filename":"2015-01-13.23.58.47.jpg","aspectRatio":1.7777, imageDate: '23.04.2019', description: 'current food 43'},
+  {"filename":"2015-01-14.14.32.09.jpg","aspectRatio":1.7777, imageDate: '23.04.2019', description: 'current food 44'},
+  {"filename":"2015-01-15.02.27.26.jpg","aspectRatio":1.7777, imageDate: '23.04.2019', description: 'current food 45'},
+  {"filename":"2015-01-15.13.31.56.jpg","aspectRatio":1.7777, imageDate: '23.04.2019', description: 'current food 46'},
+  {"filename":"2015-01-15.13.32.06.jpg","aspectRatio":1.7777, imageDate: '23.04.2019', description: 'current food 47'},
+  {"filename":"2015-01-15.19.05.43.jpg","aspectRatio":0.5625, imageDate: '23.04.2019', description: 'current food 48'},
+  {"filename":"2015-01-15.20.07.26.jpg","aspectRatio":1.7777, imageDate: '23.04.2019', description: 'current food 49'},
+  {"filename":"2015-01-15.22.49.19.jpg","aspectRatio":1.7777, imageDate: '24.04.2019', description: 'current food 50'},
+  {"filename":"2015-01-16.11.09.04.jpg","aspectRatio":1.7777, imageDate: '24.04.2019', description: 'current food 51'},
+  {"filename":"2015-01-16.16.42.51.jpg","aspectRatio":0.5625, imageDate: '24.04.2019', description: 'current food 52'},
+  {"filename":"2015-01-17.12.01.19.jpg","aspectRatio":1.7777, imageDate: '24.04.2019', description: 'current food 53'},
+  {"filename":"2015-01-17.17.24.40.jpg","aspectRatio":1.7777, imageDate: '24.04.2019', description: 'current food 54'},
+  {"filename":"2015-01-17.17.24.47.jpg","aspectRatio":1.7777, imageDate: '25.04.2019', description: 'current food 55'},
+  {"filename":"2015-01-17.18.16.19.jpg","aspectRatio":1.7777, imageDate: '25.04.2019', description: 'current food 56'},
+  {"filename":"2015-01-17.19.10.16.jpg","aspectRatio":1.7777, imageDate: '25.04.2019', description: 'current food 57'},
+  {"filename":"2015-01-17.23.35.01.jpg","aspectRatio":0.5625, imageDate: '25.04.2019', description: 'current food 58'},
+  {"filename":"2015-01-18.16.21.40.jpg","aspectRatio":1.7777, imageDate: '25.04.2019', description: 'current food 59'},
+  {"filename":"2015-01-18.20.05.59.jpg","aspectRatio":1.7777, imageDate: '25.04.2019', description: 'current food 60'},
+  {"filename":"2015-01-18.21.11.05.jpg","aspectRatio":1.7777, imageDate: '25.04.2019', description: 'current food 61'},
+  {"filename":"2015-01-18.21.37.41.jpg","aspectRatio":1.7777, imageDate: '26.04.2019', description: 'current food 62'},
+  {"filename":"2015-01-19.14.08.28.jpg","aspectRatio":1.7777, imageDate: '26.04.2019', description: 'current food 63'},
+  {"filename":"2015-01-19.19.26.32.jpg","aspectRatio":1.7777, imageDate: '26.04.2019', description: 'current food 64'},
+  {"filename":"2015-01-19.22.02.58.jpg","aspectRatio":1.7777, imageDate: '26.04.2019', description: 'current food 65'},
+  {"filename":"2015-01-19.22.05.24.jpg","aspectRatio":0.5625, imageDate: '26.04.2019', description: 'current food 66'},
+  {"filename":"2015-01-19.23.36.00.jpg","aspectRatio":1.7777, imageDate: '26.04.2019', description: 'current food 67'},
+  {"filename":"2015-01-20.18.36.19.jpg","aspectRatio":1.7777, imageDate: '26.04.2019', description: 'current food 68'},
+  {"filename":"2015-01-20.20.49.28.jpg","aspectRatio":1.7777, imageDate: '26.04.2019', description: 'current food 69'},
+  {"filename":"2015-01-20.21.17.10.jpg","aspectRatio":1.7777, imageDate: '27.04.2019', description: 'current food 70'},
+  {"filename":"2015-01-20.23.47.43.jpg","aspectRatio":1.7777, imageDate: '27.04.2019', description: 'current food 71'},
+  {"filename":"2015-01-21.12.35.30.jpg","aspectRatio":1.7777, imageDate: '27.04.2019', description: 'current food 72'},
+  {"filename":"2015-01-21.17.18.20.jpg","aspectRatio":1.7777, imageDate: '28.04.2019', description: 'current food 73'},
+  {"filename":"2015-01-21.18.52.42.jpg","aspectRatio":1.7777, imageDate: '28.04.2019', description: 'current food 74'},
+  {"filename":"2015-01-21.22.38.40.jpg","aspectRatio":1.7777, imageDate: '28.04.2019', description: 'current food 75'},
+  {"filename":"2015-01-22.10.03.35.jpg","aspectRatio":1.7777, imageDate: '28.04.2019', description: 'current food 76'},
+  {"filename":"2015-01-22.13.07.34.jpg","aspectRatio":1.7777, imageDate: '29.04.2019', description: 'current food 77'},
+  {"filename":"2015-01-22.16.53.32.jpg","aspectRatio":1.7777, imageDate: '29.04.2019', description: 'current food 78'},
+  {"filename":"2015-01-22.21.15.10.jpg","aspectRatio":1.7777, imageDate: '29.04.2019', description: 'current food 79'},
+  {"filename":"2015-01-22.22.12.55.jpg","aspectRatio":1.7777, imageDate: '30.04.2019', description: 'current food 80'},
+  {"filename":"2015-01-23.12.52.59.jpg","aspectRatio":1.7777, imageDate: '30.04.2019', description: 'current food 81'},
+  {"filename":"2015-01-23.16.05.41.jpg","aspectRatio":1.7777, imageDate: '30.04.2019', description: 'current food 82'},
+  {"filename":"2015-01-23.18.28.56.jpg","aspectRatio":1.7777, imageDate: '30.04.2019', description: 'current food 83'}
+];
+
+class ProgressiveImageCustom extends ProgressiveImage {
+  constructor(singleImageData, index, pig) {
+    super(singleImageData, index, pig);
+
+    // Instance information
+    this.imageDate = singleImageData.imageDate;  // Date taken
+    this.description = singleImageData.description;  // What to see
+
+    this.classNames.date = pig.settings.classPrefix + '-date';
+    this.classNames.desc = pig.settings.classPrefix + '-desc';
+  }
+
+  /**
+   * Add a div tag as a subelement to the <figure> tag.
+   * @param {string} subElementName - name of the subelement
+   * @param {string} content - static content of the div tag
+   * @param {string} classname - name of the class to be added to the new subelement (default value='' - i.e. no class added)
+   */
+  addDivAsSubElement(subElementName, content, classname = '') {
+    let subElement = this[subElementName];
+    if (!subElement) {
+      this[subElementName] = document.createElement('div');
+      let subElement = this[subElementName];
+      subElement.innerHTML = content;
+      if (classname.length > 0) {
+        subElement.className = classname;
+      }
+      this.getElement().appendChild(subElement);
+    }
+  }
+
+  addAllSubElements() {
+    super.addAllSubElements();
+
+    // Add div for date
+    this.addDivAsSubElement('date', this.imageDate, `${this.classNames.date} pig-overlay`);
+
+    // Add div for desc
+    this.addDivAsSubElement('desc', this.description, `${this.classNames.desc} pig-overlay`);
+
+    // Modify default element generated by base class
+    if (this.fullImage) {
+      this.fullImage.title = this.description;
+      // Overwrite eventhandler as we must show custom fields too, when image is loaded
+      this.fullImage.onload = function() {
+        // We have to make sure fullImage still exists, we may have already been
+        // deallocated if the user scrolls too fast.
+        if (this.fullImage) {
+          this.fullImage.className += ' ' + this.classNames.loaded;
+        }
+        if (this.date) {
+          this.date.className += ' ' + this.classNames.loaded;
+        }
+        if (this.desc) {
+          this.desc.className += ' ' + this.classNames.loaded;
+        }
+      }.bind(this);
+    }
+  }
+
+  removeAllSubElements() {
+    super.removeAllSubElements();
+    this.removeSubElement('date');
+    this.removeSubElement('desc');
+  }
+}
+
+class PigCustom extends Pig {
+  _injectStyle(containerId, classPrefix, transitionSpeed)  {
+    super._injectStyle(containerId, classPrefix, transitionSpeed);
+    const customCss = `.pig-date { background-color: rgba(128, 128, 128, 0.35); color: white; font-size: 11px; opacity: 0; padding: 0 4px; position: absolute; top: 0; }
+    .pig-desc {background-color: rgba(128, 128, 128, 0.35); bottom: 0; color: white; font-size: 11px; overflow: hidden; padding: 0 4px; opacity: 0; position: absolute; white-space: nowrap; }
+    .pig-figure div.pig-loaded { opacity: 1; }`;
+
+    const head = document.head || document.getElementsByTagName('head')[0];
+    const style = document.createElement('style');
+    style.appendChild(document.createTextNode(customCss));
+    head.appendChild(style);
+  }
+}
+
+const pigOptions = {
+  urlForSize: (filename, size) => `https://feeding.schlosser.io/img/food/${size}/${filename}`,
+  onClickHandler: (filename) => window.open(`https://feeding.schlosser.io/img/food/250/${filename}`, '_blank'),
+  createProgressiveImage: (singleImageData, index, pig) => new ProgressiveImageCustom(singleImageData, index, pig)
+};
+
+const pig = new PigCustom(imageData, pigOptions).enable();
+    </script>
+</body>
+</html>
