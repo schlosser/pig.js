@@ -7,11 +7,5 @@
     "esbuild": "^0.13.4"
   },
   "author": "Dan Schlosser",
-  "license": "MIT",
-  "scripts": {
-    "build": "npm run build:esm && npm run build:umd",
-    "build:esm": "node scripts/build/build.targets esm",
-    "build:umd": "node scripts/build/build.targets umd",
-    "version": "node ./scripts/copy-packagejson-to-dist.js"
-  }
+  "license": "MIT"
 }

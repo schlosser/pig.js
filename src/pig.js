@@ -23,7 +23,7 @@
  * first a blurred version of the image, and then it appears to come into
  * focus.
  */
- export class ProgressiveImage {
+export class ProgressiveImage {
 
   /**
    * Creates an instance of ProgressiveImage.
@@ -213,7 +213,7 @@
  * optimizedResize is adapted from Mozilla code:
  * https://developer.mozilla.org/en-US/docs/Web/Events/resize
  */
-export class OptimizedResize {
+class OptimizedResize {
 
   /**
    * Creates an instance of OptimizedResize.
@@ -275,7 +275,7 @@ export class OptimizedResize {
 /**
  * This is the class for defining all Pig options.
  */
-export class PigSettings {
+class PigSettings {
 
   /**
    * Creates an instance of PigSettings.
