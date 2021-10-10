@@ -1,15 +1,440 @@
-import { PigSettings } from './pig.settings.js';
-import { OptimizedResize } from './optimized.resize.js';
+/**
+ * This class manages a single image. It keeps track of the image's height,
+ * width, and position in the grid. An instance of this class is associated
+ * with a single image figure, which looks like this:
+ *
+ *   <figure class="pig-figure" style="transform: ...">
+ *     <img class="pig-thumbnail pig-loaded" src="/path/to/thumbnail/image.jpg" />
+ *     <img class="pig-loaded" src="/path/to/500px/image.jpg" />
+ *   </figure>
+ *
+ * However, this element may or may not actually exist in the DOM. The actual
+ * DOM element may loaded and unloaded depending on where it is with respect
+ * to the viewport. This class is responsible for managing the DOM elements,
+ * but does not include logic to determine _when_ the DOM elements should
+ * be removed.
+ *
+ * This class also manages the blur-into-focus load effect.  First, the
+ * <figure> element is inserted into the page. Then, a very small thumbnail
+ * is loaded, stretched out to the full size of the image.  This pixelated
+ * image is then blurred using CSS filter: blur(). Then, the full image is
+ * loaded, with opacity:0.  Once it has loaded, it is given the `pig-loaded`
+ * class, and its opacity is set to 1.  This creates an effect where there is
+ * first a blurred version of the image, and then it appears to come into
+ * focus.
+ */
+ export class ProgressiveImage {
 
   /**
-   * Class for the progressive image grid. Instantiating an instance of the Pig
-   * class does not cause any images to appear however. After instantiating,
-   * call the `enable()` function on the returned instance:
+   * Creates an instance of ProgressiveImage.
    *
-   *   var pig = new Pig(imageData, opts);
-   *   pig.enable();
+   * @param {array} singleImageData - An array of metadata about each image to
+   *                                  include in the grid.
+   * @param {string} singleImageData[0].filename - The filename of the image.
+   * @param {string} singleImageData[0].aspectRatio - The aspect ratio of the
+   *                                                  image.
+   * @param {number} index - Index of image in data source
+   * @param {object} pig - The Pig instance
+   *
+   * @returns {object}  The ProgressiveImage instance, for easy chaining with the constructor.
    */
-   export class Pig {
+  constructor(singleImageData, index, pig) {
+    // Global State
+    this.existsOnPage = false; // True if the element exists on the page.
+
+    // Instance information
+    this.aspectRatio = singleImageData.aspectRatio;  // Aspect Ratio
+    this.filename = singleImageData.filename;  // Filename
+    this.index = index;  // The index in the list of images
+
+    // The Pig instance
+    this.pig = pig;
+
+    this.classNames = {
+      figure: pig.settings.classPrefix + '-figure',
+      thumbnail: pig.settings.classPrefix + '-thumbnail',
+      loaded: pig.settings.classPrefix + '-loaded'
+    };
+
+    return this;
+  }
+
+  /**
+   * Load the image element associated with this ProgressiveImage into the DOM.
+   *
+   * This function will append the figure into the DOM, create and insert the
+   * thumbnail, and create and insert the full image.
+   */
+  load() {
+    // Create a new image element, and insert it into the DOM. It doesn't
+    // matter the order of the figure elements, because all positioning
+    // is done using transforms.
+    this.existsOnPage = true;
+    this._updateStyles();
+    this.pig.container.appendChild(this.getElement());
+
+    // We run the rest of the function in a 100ms setTimeout so that if the
+    // user is scrolling down the page very fast and hide() is called within
+    // 100ms of load(), the hide() function will set this.existsOnPage to false
+    // and we can exit.
+    setTimeout(function() {
+
+      // The image was hidden very quickly after being loaded, so don't bother
+      // loading it at all.
+      if (!this.existsOnPage) {
+        return;
+      }
+
+      this.addAllSubElements();
+    }.bind(this), 100);
+  }
+
+  /**
+   * Removes the figure from the DOM, removes the thumbnail and full image, and
+   * deletes the this.thumbnail and this.fullImage properties off of the
+   * ProgressiveImage object.
+   */
+  hide() {
+    // Remove the images from the element, so that if a user is scrolling super
+    // fast, we won't try to load every image we scroll past.
+    if (this.getElement()) {
+      this.removeAllSubElements();
+    }
+
+    // Remove the image from the DOM.
+    if (this.existsOnPage) {
+      this.pig.container.removeChild(this.getElement());
+    }
+
+    this.existsOnPage = false;
+  }
+
+  /**
+   * Get the DOM element associated with this ProgressiveImage. We default to
+   * using this.element, and we create it, if it doesn't exist.
+   *
+   * @returns {HTMLElement} The DOM element associated with this instance.
+   */
+  getElement() {
+    if (!this.element) {
+      this.element = document.createElement(this.pig.settings.figureTagName);
+      this.element.className = this.classNames.figure;
+      if (this.pig.settings.onClickHandler !== null) {
+        this.element.addEventListener('click', function() {
+          this.pig.settings.onClickHandler(this.filename);
+        }.bind(this));
+      }
+      this._updateStyles();
+    }
+
+    return this.element;
+  }
+
+  /**
+   * Add an imgage as a subelement to the <figure> tag.
+   *
+   * @param {string} subElementName - Name of the subelement
+   * @param {string} filename - ID, used to access the image (e.g. the filename)
+   * @param {number} size - Size of the image the image (e.g. this.pig.settings.thumbnailSize)
+   * @param {string} classname - Name of the class to be added to the new subelement
+   *                             (default value='' - i.e. no class added)
+   */
+  addImageAsSubElement(subElementName, filename, size, classname = '') {
+    let subElement = this[subElementName];
+    if (!subElement) {
+      this[subElementName] = new Image();
+      subElement = this[subElementName];
+      subElement.src = this.pig.settings.urlForSize(filename, size);
+      if (classname.length > 0) {
+        subElement.className = classname;
+      }
+      subElement.onload = function() {
+        // We have to make sure thumbnail still exists, we may have already been
+        // deallocated if the user scrolls too fast.
+        if (subElement) {
+          subElement.className += ' ' + this.classNames.loaded;
+        }
+      }.bind(this);
+
+      this.getElement().appendChild(subElement);
+    }
+  }
+
+  /**
+   * Add all subelements of the <figure> tag (default: 'thumbnail' and 'fullImage').
+   */
+  addAllSubElements() {
+    // Add thumbnail
+    this.addImageAsSubElement('thumbnail', this.filename, this.pig.settings.thumbnailSize, this.classNames.thumbnail);
+
+    // Add full image
+    this.addImageAsSubElement('fullImage', this.filename, this.pig.settings.getImageSize(this.pig.lastWindowWidth));
+  }
+
+  /**
+   * Remove a subelement of the <figure> tag (e.g. an image element).
+   *
+   * @param {object} SubElement of the <figure> tag - (e.g. 'this.fullImage')
+   */
+  removeSubElement(subElementName) {
+    const subElement = this[subElementName];
+    if (subElement) {
+      subElement.src = '';
+      this.getElement().removeChild(subElement);
+      delete this[subElementName];
+    }
+  }
+
+  /**
+   * Remove all subelements of the <figure> tag (default: 'thumbnail' and 'fullImage').
+   */
+  removeAllSubElements() {
+    this.removeSubElement('thumbnail');
+    this.removeSubElement('fullImage');
+  }
+
+  /**
+   * Updates the style attribute to reflect this style property on this object.
+   */
+  _updateStyles() {
+    this.getElement().style.transition = this.style.transition;
+    this.getElement().style.width = this.style.width + 'px';
+    this.getElement().style.height = this.style.height + 'px';
+    this.getElement().style.transform = (
+      'translate3d(' + this.style.translateX + 'px,' +
+        this.style.translateY + 'px, 0)');
+  }
+}
+
+/**
+ * This is a manager for our resize handlers. You can add a callback, disable
+ * all resize handlers, and re-enable handlers after they have been disabled.
+ *
+ * optimizedResize is adapted from Mozilla code:
+ * https://developer.mozilla.org/en-US/docs/Web/Events/resize
+ */
+export class OptimizedResize {
+
+  /**
+   * Creates an instance of OptimizedResize.
+   */
+  constructor() {
+    this._callbacks = [];
+    this._running = false;
+  }
+
+  /**
+   * Add a callback to be run on resize.
+   * 
+   * @param {function} callback - The callback to run on resize.
+   */
+  add(callback) {
+    if (!this._callbacks.length) {
+      window.addEventListener('resize', this._resize.bind(this));
+    }
+
+    this._callbacks.push(callback);
+  }
+
+  /**
+   * Disables all resize handlers.
+   */
+  disable() {
+    window.removeEventListener('resize', this._resize.bind(this));
+  }
+
+  /**
+   * Enables all resize handlers, if they were disabled.
+   */
+  reEnable() {
+    window.addEventListener('resize', this._resize.bind(this));
+  }
+
+  // fired on resize event
+  _resize() {
+    if (!this._running) {
+      this._running = true;
+      if (window.requestAnimationFrame) {
+        window.requestAnimationFrame(this._runCallbacks.bind(this));
+      } else {
+        setTimeout(this._runCallbacks.bind(this), 66);
+      }
+    }
+  }
+
+  // run the actual callbacks
+  _runCallbacks() {
+    this._callbacks.forEach(function(callback) {
+      callback();
+    });
+
+    this._running = false;
+  }
+}
+
+/**
+ * This is the class for defining all Pig options.
+ */
+export class PigSettings {
+
+  /**
+   * Creates an instance of PigSettings.
+   */
+  constructor() {
+    /**
+     * Type: string
+     * Default: 'pig'
+     * Description: The class name of the element inside of which images should be loaded.
+     */
+    this.containerId = 'pig';
+
+    /**
+     * Type: window | HTMLElement
+     * Default: window
+     * Description: The window or HTML element that the grid scrolls in.
+     */
+    this.scroller = window;
+
+    /**
+     * Type: string
+     * Default: 'pig'
+     * Description: The prefix associated with this library that should be
+     * !            prepended to class names within the grid.
+     */
+    this.classPrefix = 'pig';
+
+    /**
+     * Type: string
+     * Default: 'figure'
+     * Description: The tag name to use for each figure. The default setting is
+     * !            to use a <figure></figure> tag.
+     */
+    this.figureTagName = 'figure';
+
+    /**
+     * Type: Number
+     * Default: 8
+     * Description: Size in pixels of the gap between images in the grid.
+     */
+    this.spaceBetweenImages = 8;
+
+    /**
+     * Type: Number
+     * Default: 500
+     * Description: Transition speed in milliseconds
+     */
+    this.transitionSpeed = 500;
+
+    /**
+     * Type: Number
+     * Default: 3000
+       * Description: Height in pixels of images to preload in the direction
+       *   that the user is scrolling. For example, in the default case, if the
+       *   user is scrolling down, 1000px worth of images will be loaded below
+       *   the viewport.
+     */
+    this.primaryImageBufferHeight = 1000;
+
+    /**
+     * Type: Number
+     * Default: 100
+       * Description: Height in pixels of images to preload in the direction
+       *   that the user is NOT scrolling. For example, in the default case, if
+       *   the user is scrolling down, 300px worth of images will be loaded
+       *   above the viewport.  Images further up will be removed.
+     */
+    this.secondaryImageBufferHeight = 300;
+
+    /**
+     * Type: Number
+     * Default: 20
+       * Description: The height in pixels of the thumbnail that should be
+       *   loaded and blurred to give the effect that images are loading out of
+       *   focus and then coming into focus.
+     */
+    this.thumbnailSize = 20;
+
+    /**
+     * Get a callback with the filename property of the image
+     * which was clicked.
+     * callback signature: function(filename) { ... }
+     * 
+     * @param {string} filename - The filename property of the image.
+     */
+    this.onClickHandler = null;
+  }
+
+  /**
+   * Get the URL for an image with the given filename & size.
+   * 
+   * @param {string} filename - The filename of the image.
+   * @param {Number} size - The size (height in pixels) of the image.
+   * 
+   * @returns {string} The URL of the image at the given size.
+   */
+  urlForSize(filename, size) {
+    return '/img/' + size.toString(10) + '/' + filename;
+  }
+
+  /**
+   * Get the minimum required aspect ratio for a valid row of images. The
+   * perfect rows are maintained by building up a row of images by adding
+   * together their aspect ratios (the aspect ratio when they are placed
+   * next to each other) until that aspect ratio exceeds the value returned
+   * by this function. Responsive reordering is achieved through changes
+   * to what this function returns at different values of the passed
+   * parameter `lastWindowWidth`.
+   * @param {Number} lastWindowWidth - The last computed width of the browser window.
+   * @returns {Number} The minimum aspect ratio at this window width.
+   */
+  getMinAspectRatio(lastWindowWidth) {
+    if (lastWindowWidth <= 640) {
+      return 2;
+    } else if (lastWindowWidth <= 1280) {
+      return 4;
+    } else if (lastWindowWidth <= 1920) {
+      return 5;
+    }
+    return 6;
+  }
+
+  /**
+   * Get the image size (height in pixels) to use for this window width.
+   * Responsive resizing of images is achieved through changes to what this
+   * function returns at different values of the passed parameter
+   * `lastWindowWidth`.
+   * @param {Number} lastWindowWidth - The last computed width of the browser window.
+   * @returns {Number} The size (height in pixels) of the images to load.
+   */
+  getImageSize(lastWindowWidth) {
+    if (lastWindowWidth <= 640) {
+      return 100;
+    } else if (lastWindowWidth <= 1920) {
+      return 250;
+    }
+    return 500;
+  }
+
+  /**
+   * Factory function that creates a new instance of ProgressiveImage class.
+   * @param {*} singleImageData - data of one image in data source
+   * @param {number} index - index of image in data source
+   * @param {*} pig - pig instance this image should contain to
+   */
+  createProgressiveImage(singleImageData, index, pig) {
+    return new ProgressiveImage(singleImageData, index, pig);
+  }
+}
+
+/**
+ * Class for the progressive image grid. Instantiating an instance of the Pig
+ * class does not cause any images to appear however. After instantiating,
+ * call the `enable()` function on the returned instance:
+ *
+ *   var pig = new Pig(imageData, opts);
+ *   pig.enable();
+ */
+export class Pig {
 
   /**
    * Creates an instance of the progressive image grid, inserting boilerplate
