@@ -36,7 +36,7 @@
    * @param {number} index - Index of image in data source
    * @param {object} pig - The Pig instance
    *
-   * @returns {object}  The Pig instance, for easy chaining with the constructor.
+   * @returns {object}  The ProgressiveImage instance, for easy chaining with the constructor.
    */
   constructor(singleImageData, index, pig) {
     // Global State
@@ -85,39 +85,7 @@
         return;
       }
 
-      // Show thumbnail
-      if (!this.thumbnail) {
-        this.thumbnail = new Image();
-        this.thumbnail.src = this.pig.settings.urlForSize(this.filename, this.pig.settings.thumbnailSize);
-        this.thumbnail.className = this.classNames.thumbnail;
-        this.thumbnail.onload = function() {
-
-          // We have to make sure thumbnail still exists, we may have already been
-          // deallocated if the user scrolls too fast.
-          if (this.thumbnail) {
-            this.thumbnail.className += ' ' + this.classNames.loaded;
-          }
-        }.bind(this);
-
-        this.getElement().appendChild(this.thumbnail);
-      }
-
-      // Show full image
-      if (!this.fullImage) {
-        this.fullImage = new Image();
-        this.fullImage.src = this.pig.settings.urlForSize(this.filename, this.pig.settings.getImageSize(this.pig.lastWindowWidth));
-        this.fullImage.onload = function() {
-
-          // We have to make sure fullImage still exists, we may have already been
-          // deallocated if the user scrolls too fast.
-          if (this.fullImage) {
-            this.fullImage.className += ' ' + this.classNames.loaded;
-          }
-        }.bind(this);
-
-        this.getElement().appendChild(this.fullImage);
-      }
-
+      this.addAllSubElements();
     }.bind(this), 100);
   }
 
@@ -130,17 +98,7 @@
     // Remove the images from the element, so that if a user is scrolling super
     // fast, we won't try to load every image we scroll past.
     if (this.getElement()) {
-      if (this.thumbnail) {
-        this.thumbnail.src = '';
-        this.getElement().removeChild(this.thumbnail);
-        delete this.thumbnail;
-      }
-
-      if (this.fullImage) {
-        this.fullImage.src = '';
-        this.getElement().removeChild(this.fullImage);
-        delete this.fullImage;
-      }
+      this.removeAllSubElements();
     }
 
     // Remove the image from the DOM.
@@ -164,12 +122,75 @@
       if (this.pig.settings.onClickHandler !== null) {
         this.element.addEventListener('click', function() {
           this.pig.settings.onClickHandler(this.filename);
-        }.bind(this) );
+        }.bind(this));
       }
       this._updateStyles();
     }
 
     return this.element;
+  }
+
+  /**
+   * Add an imgage as a subelement to the <figure> tag.
+   *
+   * @param {string} subElementName - Name of the subelement
+   * @param {string} filename - ID, used to access the image (e.g. the filename)
+   * @param {number} size - Size of the image the image (e.g. this.pig.settings.thumbnailSize)
+   * @param {string} classname - Name of the class to be added to the new subelement
+   *                             (default value='' - i.e. no class added)
+   */
+  addImageAsSubElement(subElementName, filename, size, classname = '') {
+    let subElement = this[subElementName];
+    if (!subElement) {
+      this[subElementName] = new Image();
+      subElement = this[subElementName];
+      subElement.src = this.pig.settings.urlForSize(filename, size);
+      if (classname.length > 0) {
+        subElement.className = classname;
+      }
+      subElement.onload = function() {
+        // We have to make sure thumbnail still exists, we may have already been
+        // deallocated if the user scrolls too fast.
+        if (subElement) {
+          subElement.className += ' ' + this.classNames.loaded;
+        }
+      }.bind(this);
+
+      this.getElement().appendChild(subElement);
+    }
+  }
+
+  /**
+   * Add all subelements of the <figure> tag (default: 'thumbnail' and 'fullImage').
+   */
+  addAllSubElements() {
+    // Add thumbnail
+    this.addImageAsSubElement('thumbnail', this.filename, this.pig.settings.thumbnailSize, this.classNames.thumbnail);
+
+    // Add full image
+    this.addImageAsSubElement('fullImage', this.filename, this.pig.settings.getImageSize(this.pig.lastWindowWidth));
+  }
+
+  /**
+   * Remove a subelement of the <figure> tag (e.g. an image element).
+   *
+   * @param {object} SubElement of the <figure> tag - (e.g. 'this.fullImage')
+   */
+  removeSubElement(subElementName) {
+    const subElement = this[subElementName];
+    if (subElement) {
+      subElement.src = '';
+      this.getElement().removeChild(subElement);
+      delete this[subElementName];
+    }
+  }
+
+  /**
+   * Remove all subelements of the <figure> tag (default: 'thumbnail' and 'fullImage').
+   */
+  removeAllSubElements() {
+    this.removeSubElement('thumbnail');
+    this.removeSubElement('fullImage');
   }
 
   /**
