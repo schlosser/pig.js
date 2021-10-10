@@ -1,4 +1,6 @@
-var imageData = [
+import { Pig } from '../src/pig.js';
+
+const imageData = [
   {"filename":"2015-01-01.14.24.49.jpg","aspectRatio":1.7777},
   {"filename":"2015-01-01.19.47.28.jpg","aspectRatio":1.7777},
   {"filename":"2015-01-01.21.11.37.jpg","aspectRatio":1.7777},
@@ -88,7 +90,8 @@ var imageData = [
   {"filename":"2015-01-23.16.05.41.jpg","aspectRatio":1.7777},
   {"filename":"2015-01-23.18.28.56.jpg","aspectRatio":1.7777},
 ];
-var pig = new Pig(imageData, {
+
+const pig = new Pig(imageData, {
   urlForSize: function(filename, size) {
       return 'https://feeding.schlosser.io/img/food/' + size + '/' + filename;
   }
