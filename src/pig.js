@@ -1,5 +1,4 @@
 import { PigSettings } from './pig.settings.js';
-import { ProgressiveImage } from './progressive.image.js';
 import { OptimizedResize } from './optimized.resize.js';
 
   /**
@@ -114,7 +113,7 @@ import { OptimizedResize } from './optimized.resize.js';
     const progressiveImages = [];
 
     imageData.forEach(function(image, index) {
-      const progressiveImage = new ProgressiveImage(image, index, this);
+      const progressiveImage = this.settings.createProgressiveImage(image, index, this);
       progressiveImages.push(progressiveImage);
     }.bind(this));
 

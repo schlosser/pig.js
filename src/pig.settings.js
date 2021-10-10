@@ -1,3 +1,5 @@
+import { ProgressiveImage } from './progressive.image.js';
+
 export class PigSettings {
   constructor() {
     /**
@@ -132,5 +134,15 @@ export class PigSettings {
       return 250;
     }
     return 500;
+  }
+
+  /**
+   * Factory function that creates a new instance of ProgressiveImage class.
+   * @param {*} singleImageData - data of one image in data source
+   * @param {number} index - index of image in data source
+   * @param {*} pig - pig instance this image should contain to
+   */
+  createProgressiveImage(singleImageData, index, pig) {
+    return new ProgressiveImage(singleImageData, index, pig);
   }
 }
