@@ -28,11 +28,11 @@ export class ProgressiveImage {
   /**
    * Creates an instance of ProgressiveImage.
    *
-   * @param {array} singleImageData - An array of metadata about each image to
-   *                                  include in the grid.
-   * @param {string} singleImageData[0].filename - The filename of the image.
-   * @param {string} singleImageData[0].aspectRatio - The aspect ratio of the
-   *                                                  image.
+   * @param {object[]} singleImageData - An array of metadata about each image to
+   *                                     include in the grid.
+   * @param {string} singleImageData[].filename - The filename of the image.
+   * @param {string} singleImageData[].aspectRatio - The aspect ratio of the
+   *                                                 image.
    * @param {number} index - Index of image in data source
    * @param {object} pig - The Pig instance
    *
@@ -366,10 +366,10 @@ class PigSettings {
 
   /**
    * Get the URL for an image with the given filename & size.
-   * 
+   *
    * @param {string} filename - The filename of the image.
-   * @param {Number} size - The size (height in pixels) of the image.
-   * 
+   * @param {number} size - The size (height in pixels) of the image.
+   *
    * @returns {string} The URL of the image at the given size.
    */
   urlForSize(filename, size) {
@@ -384,8 +384,10 @@ class PigSettings {
    * by this function. Responsive reordering is achieved through changes
    * to what this function returns at different values of the passed
    * parameter `lastWindowWidth`.
-   * @param {Number} lastWindowWidth - The last computed width of the browser window.
-   * @returns {Number} The minimum aspect ratio at this window width.
+   *
+   * @param {number} lastWindowWidth - The last computed width of the browser window.
+   *
+   * @returns {number} The minimum aspect ratio at this window width.
    */
   getMinAspectRatio(lastWindowWidth) {
     if (lastWindowWidth <= 640) {
@@ -403,8 +405,10 @@ class PigSettings {
    * Responsive resizing of images is achieved through changes to what this
    * function returns at different values of the passed parameter
    * `lastWindowWidth`.
-   * @param {Number} lastWindowWidth - The last computed width of the browser window.
-   * @returns {Number} The size (height in pixels) of the images to load.
+   *
+   * @param {number} lastWindowWidth - The last computed width of the browser window.
+   *
+   * @returns {number} The size (height in pixels) of the images to load.
    */
   getImageSize(lastWindowWidth) {
     if (lastWindowWidth <= 640) {
@@ -416,10 +420,10 @@ class PigSettings {
   }
 
   /**
-   * Factory function that creates a new instance of ProgressiveImage class.
-   * @param {*} singleImageData - data of one image in data source
-   * @param {number} index - index of image in data source
-   * @param {*} pig - pig instance this image should contain to
+   * Factory function that creates a new instance of the ProgressiveImage class.
+   * @param {object} singleImageData - Data of the image in the data source
+   * @param {number} index - Index of the image in the data source
+   * @param {object} pig - Pig instance, that should contain the image
    */
   createProgressiveImage(singleImageData, index, pig) {
     return new ProgressiveImage(singleImageData, index, pig);
@@ -440,10 +444,10 @@ export class Pig {
    * Creates an instance of the progressive image grid, inserting boilerplate
    * CSS and loading image data.
 
-   * @param {array} imageData - An array of metadata about each image to
-   *                            include in the grid.
-   * @param {string} imageData[0].filename - The filename of the image.
-   * @param {string} imageData[0].aspectRatio - The aspect ratio of the image.
+   * @param {object[]} imageData - An array of metadata about each image to
+   *                               include in the grid.
+   * @param {string} imageData[].filename - The filename of the image.
+   * @param {string} imageData[].aspectRatio - The aspect ratio of the image.
    * @param {object} options - An object containing overrides for the default
    *                           options. See class PigSettings for the full list
    *                           of options and defaults.
@@ -526,10 +530,10 @@ export class Pig {
    * Creates new instances of the ProgressiveImage class for each of the images
    * defined in `imageData`.
    *
-   * @param {array} imageData - An array of metadata about each image to
-   *                            include in the grid.
-   * @param {string} imageData[0].filename - The filename of the image.
-   * @param {string} imageData[0].aspectRatio - The aspect ratio of the image.
+   * @param {object[]} imageData - An array of metadata about each image to
+   *                               include in the grid.
+   * @param {string} imageData[].filename - The filename of the image.
+   * @param {string} imageData[].aspectRatio - The aspect ratio of the image.
    *
    * @returns {Array[ProgressiveImage]} - An array of ProgressiveImage
    *                                      instances that we created.
@@ -625,7 +629,7 @@ export class Pig {
    * given as 500ms, we will wait 750ms before assuming that we are actually
    * done resizing.
    *
-   * @returns {Number} Time in milliseconds before we can consider a resize to
+   * @returns {number} Time in milliseconds before we can consider a resize to
    * !                 have been completed.
    */
   _getTransitionTimeout() {

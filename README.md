@@ -140,9 +140,9 @@ class ProgressiveImageCustom extends ProgressiveImage {
 
   /**
    * Add a div tag as a subelement to the <figure> tag.
-   * @param {String} subElementName - name of the subelement
-   * @param {String} content - static content of the div tag
-   * @param {String} classname - name of the class to be added to the new subelement (default value='' - i.e. no class added)
+   * @param {string} subElementName - name of the subelement
+   * @param {string} content - static content of the div tag
+   * @param {string} classname - name of the class to be added to the new subelement (default value='' - i.e. no class added)
    */
    addDivAsSubElement(subElementName, content, classname = '') {
     let subElement = this[subElementName];
