@@ -7,7 +7,7 @@
  */
 
 const fs = require('fs');
-var exec = require('child_process').exec;
+const exec = require('child_process').exec; 
 
 let package = {};
  
@@ -21,23 +21,23 @@ try {
   return;
 }
 
-// Copy package.json for umd variant
-try {
-  const packageForUmd = JSON.stringify(package, null, '  ').replace(/\n/g, '\r\n').concat('\r\n');
-  fs.writeFileSync('./dist/package.json', packageForUmd);
-  console.log('package.json copied to "/dist/"');
-} catch (err) {
-  console.log('Error saving "package.json" to "/dist/"', err);
-}
-
 // Copy package.json for esm variant
 try {
-  package['type'] = 'module';
   const packageForEsm = JSON.stringify(package, null, '  ').replace(/\n/g, '\r\n').concat('\r\n');
   fs.writeFileSync('./dist/esm/package.json', packageForEsm);
   console.log('package.json copied to "/dist/esm/"');
 } catch (err) {
   console.log('Error saving "package.json" to "/dist/esm/"', err);
+}
+
+// Copy package.json for umd variant
+try {
+  delete package['type'];
+  const packageForUmd = JSON.stringify(package, null, '  ').replace(/\n/g, '\r\n').concat('\r\n');
+  fs.writeFileSync('./dist/package.json', packageForUmd);
+  console.log('package.json copied to "/dist/"');
+} catch (err) {
+  console.log('Error saving "package.json" to "/dist/"', err);
 }
 
 // Copy README.md

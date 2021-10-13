@@ -6,7 +6,7 @@
   "devDependencies": {
     "esbuild": "^0.13.4"
   },
+  "type": "module",
   "author": "Dan Schlosser",
-  "license": "MIT",
-  "type": "module"
+  "license": "MIT"
 }
