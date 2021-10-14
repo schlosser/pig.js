@@ -4,12 +4,20 @@
   "description": "Arrange images in a responsive, progressive-loading grid managed in JavaScript using CSS transforms.",
   "repository": "https://github.com/schlosser/pig.js",
   "devDependencies": {
-    "esbuild": "^0.13.4"
+    "esbuild": "^0.13.5",
+    "eslint": "^7.32.0",
+    "eslint-config-airbnb-base": "^14.2.1",
+    "eslint-plugin-import": "^2.25.2",
+    "eslint-plugin-jsdoc": "^36.1.1",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-security": "^1.4.0",
+    "eslint-plugin-security-node": "^1.0.14"
   },
   "type": "module",
   "author": "Dan Schlosser",
   "license": "MIT",
   "scripts": {
+    "lint": ".\\node_modules\\.bin\\eslint -c .eslintrc.cjs src/**/*.js",
     "build": "npm run build:esm && npm run build:umd",
     "build:esm": "node scripts/build/build.targets.cjs esm",
     "build:umd": "node scripts/build/build.targets.cjs umd",
