@@ -24,7 +24,6 @@
  * focus.
  */
 export class ProgressiveImage {
-
   /**
    * Creates an instance of ProgressiveImage.
    *
@@ -51,9 +50,9 @@ export class ProgressiveImage {
     this.pig = pig;
 
     this.classNames = {
-      figure: pig.settings.classPrefix + '-figure',
-      thumbnail: pig.settings.classPrefix + '-thumbnail',
-      loaded: pig.settings.classPrefix + '-loaded'
+      figure: `${pig.settings.classPrefix}-figure`,
+      thumbnail: `${pig.settings.classPrefix}-thumbnail`,
+      loaded: `${pig.settings.classPrefix}-loaded`
     };
 
     return this;
@@ -77,8 +76,7 @@ export class ProgressiveImage {
     // user is scrolling down the page very fast and hide() is called within
     // 100ms of load(), the hide() function will set this.existsOnPage to false
     // and we can exit.
-    setTimeout(function() {
-
+    setTimeout(() => {
       // The image was hidden very quickly after being loaded, so don't bother
       // loading it at all.
       if (!this.existsOnPage) {
@@ -86,7 +84,7 @@ export class ProgressiveImage {
       }
 
       this.addAllSubElements();
-    }.bind(this), 100);
+    }, 100);
   }
 
   /**
@@ -120,9 +118,9 @@ export class ProgressiveImage {
       this.element = document.createElement(this.pig.settings.figureTagName);
       this.element.className = this.classNames.figure;
       if (this.pig.settings.onClickHandler !== null) {
-        this.element.addEventListener('click', function() {
+        this.element.addEventListener('click', () => {
           this.pig.settings.onClickHandler(this.filename);
-        }.bind(this));
+        });
       }
       this._updateStyles();
     }
@@ -148,13 +146,13 @@ export class ProgressiveImage {
       if (classname.length > 0) {
         subElement.className = classname;
       }
-      subElement.onload = function() {
+      subElement.onload = () => {
         // We have to make sure thumbnail still exists, we may have already been
         // deallocated if the user scrolls too fast.
         if (subElement) {
-          subElement.className += ' ' + this.classNames.loaded;
+          subElement.className += ` ${this.classNames.loaded}`;
         }
-      }.bind(this);
+      };
 
       this.getElement().appendChild(subElement);
     }
@@ -174,7 +172,7 @@ export class ProgressiveImage {
   /**
    * Remove a subelement of the <figure> tag (e.g. an image element).
    *
-   * @param {object} SubElement of the <figure> tag - (e.g. 'this.fullImage')
+   * @param {string} subElementName - SubElement of the <figure> tag - (e.g. 'this.fullImage')
    */
   removeSubElement(subElementName) {
     const subElement = this[subElementName];
@@ -198,11 +196,10 @@ export class ProgressiveImage {
    */
   _updateStyles() {
     this.getElement().style.transition = this.style.transition;
-    this.getElement().style.width = this.style.width + 'px';
-    this.getElement().style.height = this.style.height + 'px';
+    this.getElement().style.width = `${this.style.width}px`;
+    this.getElement().style.height = `${this.style.height}px`;
     this.getElement().style.transform = (
-      'translate3d(' + this.style.translateX + 'px,' +
-        this.style.translateY + 'px, 0)');
+      `translate3d(${this.style.translateX}px, ${this.style.translateY}px, 0)`);
   }
 }
 
@@ -214,7 +211,6 @@ export class ProgressiveImage {
  * https://developer.mozilla.org/en-US/docs/Web/Events/resize
  */
 class OptimizedResize {
-
   /**
    * Creates an instance of OptimizedResize.
    */
@@ -225,8 +221,8 @@ class OptimizedResize {
 
   /**
    * Add a callback to be run on resize.
-   * 
-   * @param {function} callback - The callback to run on resize.
+   *
+   * @param {Function} callback - The callback to run on resize.
    */
   add(callback) {
     if (!this._callbacks.length) {
@@ -264,7 +260,7 @@ class OptimizedResize {
 
   // run the actual callbacks
   _runCallbacks() {
-    this._callbacks.forEach(function(callback) {
+    this._callbacks.forEach((callback) => {
       callback();
     });
 
@@ -276,7 +272,6 @@ class OptimizedResize {
  * This is the class for defining all Pig options.
  */
 class PigSettings {
-
   /**
    * Creates an instance of PigSettings.
    */
@@ -328,29 +323,29 @@ class PigSettings {
     /**
      * Type: Number
      * Default: 3000
-       * Description: Height in pixels of images to preload in the direction
-       *   that the user is scrolling. For example, in the default case, if the
-       *   user is scrolling down, 1000px worth of images will be loaded below
-       *   the viewport.
+     * Description: Height in pixels of images to preload in the direction
+     *   that the user is scrolling. For example, in the default case, if the
+     *   user is scrolling down, 1000px worth of images will be loaded below
+     *   the viewport.
      */
     this.primaryImageBufferHeight = 1000;
 
     /**
      * Type: Number
      * Default: 100
-       * Description: Height in pixels of images to preload in the direction
-       *   that the user is NOT scrolling. For example, in the default case, if
-       *   the user is scrolling down, 300px worth of images will be loaded
-       *   above the viewport.  Images further up will be removed.
+     * Description: Height in pixels of images to preload in the direction
+     *   that the user is NOT scrolling. For example, in the default case, if
+     *   the user is scrolling down, 300px worth of images will be loaded
+     *   above the viewport.  Images further up will be removed.
      */
     this.secondaryImageBufferHeight = 300;
 
     /**
      * Type: Number
      * Default: 20
-       * Description: The height in pixels of the thumbnail that should be
-       *   loaded and blurred to give the effect that images are loading out of
-       *   focus and then coming into focus.
+     * Description: The height in pixels of the thumbnail that should be
+     *   loaded and blurred to give the effect that images are loading out of
+     *   focus and then coming into focus.
      */
     this.thumbnailSize = 20;
 
@@ -358,7 +353,7 @@ class PigSettings {
      * Get a callback with the filename property of the image
      * which was clicked.
      * callback signature: function(filename) { ... }
-     * 
+     *
      * @param {string} filename - The filename property of the image.
      */
     this.onClickHandler = null;
@@ -373,7 +368,7 @@ class PigSettings {
    * @returns {string} The URL of the image at the given size.
    */
   urlForSize(filename, size) {
-    return '/img/' + size.toString(10) + '/' + filename;
+    return `/img/${size.toString(10)}/${filename}`;
   }
 
   /**
@@ -421,9 +416,12 @@ class PigSettings {
 
   /**
    * Factory function that creates a new instance of the ProgressiveImage class.
+   *
    * @param {object} singleImageData - Data of the image in the data source
    * @param {number} index - Index of the image in the data source
    * @param {object} pig - Pig instance, that should contain the image
+   *
+   * @returns {object} The newly created instance of the ProgressiveImage class
    */
   createProgressiveImage(singleImageData, index, pig) {
     return new ProgressiveImage(singleImageData, index, pig);
@@ -439,11 +437,10 @@ class PigSettings {
  *   pig.enable();
  */
 export class Pig {
-
   /**
    * Creates an instance of the progressive image grid, inserting boilerplate
    * CSS and loading image data.
-
+   *
    * @param {object[]} imageData - An array of metadata about each image to
    *                               include in the grid.
    * @param {string} imageData[].filename - The filename of the image.
@@ -475,7 +472,7 @@ export class Pig {
     // Find the container to load images into, if it exists.
     this.container = document.getElementById(this.settings.containerId);
     if (!this.container) {
-      console.error('Could not find element with ID ' + this.settings.containerId);
+      console.error(`Could not find element with ID ${this.settings.containerId}`);
     }
 
     this.scroller = this.settings.scroller;
@@ -485,6 +482,7 @@ export class Pig {
     this.images = this._parseImageData(imageData);
 
     // Inject our boilerplate CSS.
+    // eslint-disable-next-line max-len
     this._injectStyle(this.settings.containerId, this.settings.classPrefix, this.settings.transitionSpeed);
 
     // Allows for chaining with `enable()`.
@@ -506,11 +504,12 @@ export class Pig {
     this._computeLayout();
     this._doLayout();
 
-    this._optimizedResize.add(function() {
+    this._optimizedResize.add(() => {
+      // eslint-disable-next-line max-len
       this.lastWindowWidth = this.scroller === window ? window.innerWidth : this.scroller.offsetWidth;
       this._computeLayout();
       this._doLayout();
-    }.bind(this));
+    });
 
     return this;
   }
@@ -535,16 +534,16 @@ export class Pig {
    * @param {string} imageData[].filename - The filename of the image.
    * @param {string} imageData[].aspectRatio - The aspect ratio of the image.
    *
-   * @returns {Array[ProgressiveImage]} - An array of ProgressiveImage
-   *                                      instances that we created.
+   * @returns {ProgressiveImage[]} - An array of ProgressiveImage instances
+   *                                 that we created.
    */
   _parseImageData(imageData) {
     const progressiveImages = [];
 
-    imageData.forEach(function(image, index) {
+    imageData.forEach((image, index) => {
       const progressiveImage = this.settings.createProgressiveImage(image, index, this);
       progressiveImages.push(progressiveImage);
-    }.bind(this));
+    });
 
     return progressiveImages;
   }
@@ -561,10 +560,10 @@ export class Pig {
   _getOffsetTop(elem) {
     let offsetTop = 0;
     do {
-      if (!isNaN(elem.offsetTop)) {
+      if (!Number.isNaN(elem.offsetTop)) {
         offsetTop += elem.offsetTop;
       }
-      elem = elem.offsetParent;
+      elem = elem.offsetParent;  // eslint-disable-line no-param-reassign
     } while (elem);
     return offsetTop;
   }
@@ -578,12 +577,11 @@ export class Pig {
    * @param {number} transitionSpeed - Animation duration in milliseconds
    */
   _injectStyle(containerId, classPrefix, transitionSpeed) {
-
     const css = (
-      '#' + containerId + ' {' +
+      `#${containerId} {` +
       '  position: relative;' +
       '}' +
-      '.' + classPrefix + '-figure {' +
+      `.${classPrefix}-figure {` +
       '  background-color: #D5D5D5;' +
       '  overflow: hidden;' +
       '  left: 0;' +
@@ -591,24 +589,24 @@ export class Pig {
       '  top: 0;' +
       '  margin: 0;' +
       '}' +
-      '.' + classPrefix + '-figure img {' +
+      `.${classPrefix}-figure img {` +
       '  left: 0;' +
       '  position: absolute;' +
       '  top: 0;' +
       '  height: 100%;' +
       '  width: 100%;' +
       '  opacity: 0;' +
-      '  transition: ' + (transitionSpeed / 1000).toString(10) + 's ease opacity;' +
-      '  -webkit-transition: ' + (transitionSpeed / 1000).toString(10) + 's ease opacity;' +
+      `  transition: ${(transitionSpeed / 1000).toString(10)}s ease opacity;` +
+      `  -webkit-transition: ${(transitionSpeed / 1000).toString(10)}s ease opacity;` +
       '}' +
-      '.' + classPrefix + '-figure img.' + classPrefix + '-thumbnail {' +
+      `.${classPrefix}-figure img.${classPrefix}-thumbnail {` +
       '  -webkit-filter: blur(30px);' +
       '  filter: blur(30px);' +
       '  left: auto;' +
       '  position: relative;' +
       '  width: auto;' +
       '}' +
-      '.' + classPrefix + '-figure img.' + classPrefix + '-loaded {' +
+      `.${classPrefix}-figure img.${classPrefix}-loaded {` +
       '  opacity: 1;' +
       '}'
     );
@@ -645,7 +643,7 @@ export class Pig {
    */
   _getTransitionString() {
     if (this.isTransitioning) {
-      return (this.settings.transitionSpeed / 1000).toString(10) + 's transform ease';
+      return `${(this.settings.transitionSpeed / 1000).toString(10)}s transform ease`;
     }
 
     return 'none';
@@ -706,7 +704,7 @@ export class Pig {
     // future calls to `_computeLayout` will set "transition: none".
     if (!this.isTransitioning && this.minAspectRatioRequiresTransition) {
       this.isTransitioning = true;
-      setTimeout(function() {
+      setTimeout(() => {
         this.isTransitioning = false;
       }, this._getTransitionTimeout());
     }
@@ -716,7 +714,7 @@ export class Pig {
 
     // Loop through all our images, building them up into rows and computing
     // the working rowAspectRatio.
-    [].forEach.call(this.images, function(image, index) {
+    [].forEach.call(this.images, (image, index) => {
       rowAspectRatio += parseFloat(image.aspectRatio);
       row.push(image);
 
@@ -725,11 +723,11 @@ export class Pig {
       // need for this row, and compute the style values for each of these
       // images.
       if (rowAspectRatio >= this.minAspectRatio || index + 1 === this.images.length) {
-
         // Make sure that the last row also has a reasonable height
         rowAspectRatio = Math.max(rowAspectRatio, this.minAspectRatio);
 
         // Compute this row's height.
+        // eslint-disable-next-line max-len
         const totalDesiredWidthOfImages = wrapperWidth - this.settings.spaceBetweenImages * (row.length - 1);
         const rowHeight = totalDesiredWidthOfImages / rowAspectRatio;
 
@@ -740,24 +738,22 @@ export class Pig {
         // NOTE: This does not manipulate the DOM, rather it just sets the
         //       style values on the ProgressiveImage instance. The DOM nodes
         //       will be updated in _doLayout.
-        row.forEach(function(img) {
-
+        row.forEach((img) => {
           const imageWidth = rowHeight * img.aspectRatio;
 
           // This is NOT DOM manipulation.
-          img.style = {
+          img.style = {  // eslint-disable-line no-param-reassign
             width: parseInt(imageWidth, 10),
             height: parseInt(rowHeight, 10),
-            translateX: translateX,
-            translateY: translateY,
-            transition: transition
+            translateX,
+            translateY,
+            transition
           };
 
           // The next image is this.settings.spaceBetweenImages pixels to the
           // right of this image.
           translateX += imageWidth + this.settings.spaceBetweenImages;
-
-        }.bind(this));
+        });
 
         // Reset our state variables for next row.
         row = [];
@@ -765,7 +761,7 @@ export class Pig {
         translateY += parseInt(rowHeight, 10) + this.settings.spaceBetweenImages;
         translateX = 0;
       }
-    }.bind(this));
+    });
 
     // No space below the last image
     this.totalHeight = translateY - this.settings.spaceBetweenImages;
@@ -834,9 +830,8 @@ export class Pig {
    *
    */
   _doLayout() {
-
     // Set the container height
-    this.container.style.height = this.totalHeight + 'px';
+    this.container.style.height = `${this.totalHeight}px`;
 
     // Get the top and bottom buffers heights.
     const bufferTop =
@@ -850,6 +845,7 @@ export class Pig {
 
     // Now we compute the location of the top and bottom buffers:
     const containerOffset = this._getOffsetTop(this.container);
+    // eslint-disable-next-line max-len
     const scrollerHeight = this.scroller === window ? window.innerHeight : this.scroller.offsetHeight;
 
     // This is the top of the top buffer. If the bottom of an image is above
@@ -862,8 +858,7 @@ export class Pig {
 
     // Here, we loop over every image, determine if it is inside our buffers or
     // no, and either insert it or remove it appropriately.
-    this.images.forEach(function(image) {
-
+    this.images.forEach((image) => {
       if (image.style.translateY + image.style.height < minTranslateYPlusHeight ||
             image.style.translateY > maxTranslateY) {
         // Hide Image
@@ -878,7 +873,7 @@ export class Pig {
   /**
    * Create our onScroll handler and return it.
    *
-   * @returns {function} Our optimized onScroll handler that we should attach.
+   * @returns {Function} Our optimized onScroll handler that we should attach.
    */
   _getOnScroll() {
     const that = this;
@@ -904,7 +899,7 @@ export class Pig {
       if (!that.inRAF) {
         that.inRAF = true;
         window.requestAnimationFrame(() => {
-          that._doLayout();
+          that._doLayout();  // eslint-disable-line no-underscore-dangle
           that.inRAF = false;
         });
       }

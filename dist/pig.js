@@ -20,9 +20,9 @@ var ProgressiveImage = class {
     this.index = index;
     this.pig = pig;
     this.classNames = {
-      figure: pig.settings.classPrefix + "-figure",
-      thumbnail: pig.settings.classPrefix + "-thumbnail",
-      loaded: pig.settings.classPrefix + "-loaded"
+      figure: `${pig.settings.classPrefix}-figure`,
+      thumbnail: `${pig.settings.classPrefix}-thumbnail`,
+      loaded: `${pig.settings.classPrefix}-loaded`
     };
     return this;
   }
@@ -30,12 +30,12 @@ var ProgressiveImage = class {
     this.existsOnPage = true;
     this._updateStyles();
     this.pig.container.appendChild(this.getElement());
-    setTimeout(function() {
+    setTimeout(() => {
       if (!this.existsOnPage) {
         return;
       }
       this.addAllSubElements();
-    }.bind(this), 100);
+    }, 100);
   }
   hide() {
     if (this.getElement()) {
@@ -51,9 +51,9 @@ var ProgressiveImage = class {
       this.element = document.createElement(this.pig.settings.figureTagName);
       this.element.className = this.classNames.figure;
       if (this.pig.settings.onClickHandler !== null) {
-        this.element.addEventListener("click", function() {
+        this.element.addEventListener("click", () => {
           this.pig.settings.onClickHandler(this.filename);
-        }.bind(this));
+        });
       }
       this._updateStyles();
     }
@@ -68,11 +68,11 @@ var ProgressiveImage = class {
       if (classname.length > 0) {
         subElement.className = classname;
       }
-      subElement.onload = function() {
+      subElement.onload = () => {
         if (subElement) {
-          subElement.className += " " + this.classNames.loaded;
+          subElement.className += ` ${this.classNames.loaded}`;
         }
-      }.bind(this);
+      };
       this.getElement().appendChild(subElement);
     }
   }
@@ -94,9 +94,9 @@ var ProgressiveImage = class {
   }
   _updateStyles() {
     this.getElement().style.transition = this.style.transition;
-    this.getElement().style.width = this.style.width + "px";
-    this.getElement().style.height = this.style.height + "px";
-    this.getElement().style.transform = "translate3d(" + this.style.translateX + "px," + this.style.translateY + "px, 0)";
+    this.getElement().style.width = `${this.style.width}px`;
+    this.getElement().style.height = `${this.style.height}px`;
+    this.getElement().style.transform = `translate3d(${this.style.translateX}px, ${this.style.translateY}px, 0)`;
   }
 };
 var OptimizedResize = class {
@@ -127,7 +127,7 @@ var OptimizedResize = class {
     }
   }
   _runCallbacks() {
-    this._callbacks.forEach(function(callback) {
+    this._callbacks.forEach((callback) => {
       callback();
     });
     this._running = false;
@@ -147,7 +147,7 @@ var PigSettings = class {
     this.onClickHandler = null;
   }
   urlForSize(filename, size) {
-    return "/img/" + size.toString(10) + "/" + filename;
+    return `/img/${size.toString(10)}/${filename}`;
   }
   getMinAspectRatio(lastWindowWidth) {
     if (lastWindowWidth <= 640) {
@@ -185,7 +185,7 @@ var Pig = class {
     this.settings = Object.assign(new PigSettings(), options);
     this.container = document.getElementById(this.settings.containerId);
     if (!this.container) {
-      console.error("Could not find element with ID " + this.settings.containerId);
+      console.error(`Could not find element with ID ${this.settings.containerId}`);
     }
     this.scroller = this.settings.scroller;
     this.images = this._parseImageData(imageData);
@@ -198,11 +198,11 @@ var Pig = class {
     this.onScroll();
     this._computeLayout();
     this._doLayout();
-    this._optimizedResize.add(function() {
+    this._optimizedResize.add(() => {
       this.lastWindowWidth = this.scroller === window ? window.innerWidth : this.scroller.offsetWidth;
       this._computeLayout();
       this._doLayout();
-    }.bind(this));
+    });
     return this;
   }
   disable() {
@@ -212,16 +212,16 @@ var Pig = class {
   }
   _parseImageData(imageData) {
     const progressiveImages = [];
-    imageData.forEach(function(image, index) {
+    imageData.forEach((image, index) => {
       const progressiveImage = this.settings.createProgressiveImage(image, index, this);
       progressiveImages.push(progressiveImage);
-    }.bind(this));
+    });
     return progressiveImages;
   }
   _getOffsetTop(elem) {
     let offsetTop = 0;
     do {
-      if (!isNaN(elem.offsetTop)) {
+      if (!Number.isNaN(elem.offsetTop)) {
         offsetTop += elem.offsetTop;
       }
       elem = elem.offsetParent;
@@ -229,7 +229,7 @@ var Pig = class {
     return offsetTop;
   }
   _injectStyle(containerId, classPrefix, transitionSpeed) {
-    const css = "#" + containerId + " {  position: relative;}." + classPrefix + "-figure {  background-color: #D5D5D5;  overflow: hidden;  left: 0;  position: absolute;  top: 0;  margin: 0;}." + classPrefix + "-figure img {  left: 0;  position: absolute;  top: 0;  height: 100%;  width: 100%;  opacity: 0;  transition: " + (transitionSpeed / 1e3).toString(10) + "s ease opacity;  -webkit-transition: " + (transitionSpeed / 1e3).toString(10) + "s ease opacity;}." + classPrefix + "-figure img." + classPrefix + "-thumbnail {  -webkit-filter: blur(30px);  filter: blur(30px);  left: auto;  position: relative;  width: auto;}." + classPrefix + "-figure img." + classPrefix + "-loaded {  opacity: 1;}";
+    const css = `#${containerId} {  position: relative;}.${classPrefix}-figure {  background-color: #D5D5D5;  overflow: hidden;  left: 0;  position: absolute;  top: 0;  margin: 0;}.${classPrefix}-figure img {  left: 0;  position: absolute;  top: 0;  height: 100%;  width: 100%;  opacity: 0;  transition: ${(transitionSpeed / 1e3).toString(10)}s ease opacity;  -webkit-transition: ${(transitionSpeed / 1e3).toString(10)}s ease opacity;}.${classPrefix}-figure img.${classPrefix}-thumbnail {  -webkit-filter: blur(30px);  filter: blur(30px);  left: auto;  position: relative;  width: auto;}.${classPrefix}-figure img.${classPrefix}-loaded {  opacity: 1;}`;
     const head = document.head || document.getElementsByTagName("head")[0];
     const style = document.createElement("style");
     style.appendChild(document.createTextNode(css));
@@ -241,7 +241,7 @@ var Pig = class {
   }
   _getTransitionString() {
     if (this.isTransitioning) {
-      return (this.settings.transitionSpeed / 1e3).toString(10) + "s transform ease";
+      return `${(this.settings.transitionSpeed / 1e3).toString(10)}s transform ease`;
     }
     return "none";
   }
@@ -263,19 +263,19 @@ var Pig = class {
     this._recomputeMinAspectRatio();
     if (!this.isTransitioning && this.minAspectRatioRequiresTransition) {
       this.isTransitioning = true;
-      setTimeout(function() {
+      setTimeout(() => {
         this.isTransitioning = false;
       }, this._getTransitionTimeout());
     }
     const transition = this._getTransitionString();
-    [].forEach.call(this.images, function(image, index) {
+    [].forEach.call(this.images, (image, index) => {
       rowAspectRatio += parseFloat(image.aspectRatio);
       row.push(image);
       if (rowAspectRatio >= this.minAspectRatio || index + 1 === this.images.length) {
         rowAspectRatio = Math.max(rowAspectRatio, this.minAspectRatio);
         const totalDesiredWidthOfImages = wrapperWidth - this.settings.spaceBetweenImages * (row.length - 1);
         const rowHeight = totalDesiredWidthOfImages / rowAspectRatio;
-        row.forEach(function(img) {
+        row.forEach((img) => {
           const imageWidth = rowHeight * img.aspectRatio;
           img.style = {
             width: parseInt(imageWidth, 10),
@@ -285,24 +285,24 @@ var Pig = class {
             transition
           };
           translateX += imageWidth + this.settings.spaceBetweenImages;
-        }.bind(this));
+        });
         row = [];
         rowAspectRatio = 0;
         translateY += parseInt(rowHeight, 10) + this.settings.spaceBetweenImages;
         translateX = 0;
       }
-    }.bind(this));
+    });
     this.totalHeight = translateY - this.settings.spaceBetweenImages;
   }
   _doLayout() {
-    this.container.style.height = this.totalHeight + "px";
+    this.container.style.height = `${this.totalHeight}px`;
     const bufferTop = this.scrollDirection === "up" ? this.settings.primaryImageBufferHeight : this.settings.secondaryImageBufferHeight;
     const bufferBottom = this.scrollDirection === "down" ? this.settings.secondaryImageBufferHeight : this.settings.primaryImageBufferHeight;
     const containerOffset = this._getOffsetTop(this.container);
     const scrollerHeight = this.scroller === window ? window.innerHeight : this.scroller.offsetHeight;
     const minTranslateYPlusHeight = this.latestYOffset - containerOffset - bufferTop;
     const maxTranslateY = this.latestYOffset - containerOffset + scrollerHeight + bufferBottom;
-    this.images.forEach(function(image) {
+    this.images.forEach((image) => {
       if (image.style.translateY + image.style.height < minTranslateYPlusHeight || image.style.translateY > maxTranslateY) {
         image.hide();
       } else {
