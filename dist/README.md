@@ -174,7 +174,7 @@ class ProgressiveImageCustom extends ProgressiveImage {
     if (this.fullImage) {
       this.fullImage.title = this.description;
       // Overwrite eventhandler as we must show custom fields too, when image is loaded
-      this.fullImage.onload = function() {
+      this.fullImage.onload = () => {
         // We have to make sure fullImage still exists, we may have already been
         // deallocated if the user scrolls too fast.
         if (this.fullImage) {
@@ -186,7 +186,7 @@ class ProgressiveImageCustom extends ProgressiveImage {
         if (this.desc) {
           this.desc.className += ' ' + this.classNames.loaded;
         }
-      }.bind(this);
+      };
     }
   }
 
@@ -498,13 +498,13 @@ This function is (only) called by `ProgressiveImage.addAllSubElements`. Therefor
 >     if (classname.length > 0) {
 >       subElement.className = classname;
 >     }
->     subElement.onload = function() {
+>     subElement.onload = () => {
 >       // We have to make sure that the thumbnail still exists; we may
 >       // have been already deallocating it, if the user scrolls too fast.
 >       if (subElement) {
 >         subElement.className += ' ' + this.classNames.loaded;
 >       }
->     }.bind(this);
+>     };
 >
 >     this.getElement().appendChild(subElement);
 >   }

@@ -161,7 +161,7 @@ class ProgressiveImageCustom extends ProgressiveImage {
     if (this.fullImage) {
       this.fullImage.title = this.description;
       // Overwrite eventhandler as we must show custom fields too, when image is loaded
-      this.fullImage.onload = function() {
+      this.fullImage.onload = () => {
         // We have to make sure fullImage still exists, we may have already been
         // deallocated if the user scrolls too fast.
         if (this.fullImage) {
@@ -173,7 +173,7 @@ class ProgressiveImageCustom extends ProgressiveImage {
         if (this.desc) {
           this.desc.className += ' ' + this.classNames.loaded;
         }
-      }.bind(this);
+      };
     }
   }
 
