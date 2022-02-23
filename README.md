@@ -294,6 +294,6 @@ Enable the Pig library by beginning to listen to scroll and resize events, loadi
 
 Disable the Pig library by removing event listeners set in `Pig.enable()`.
 
-[download]: https://github.com/schlosser/pig.js/releases/download/v0.2.1/pig.min.js
+[download]: https://github.com/schlosser/pig.js/releases/download/v0.3/pig.min.js
 [feeding-dan]: https://feeding.schlosser.io/
 [feeding-dan-gh]: https://github.com/schlosser/feeding-dan/
