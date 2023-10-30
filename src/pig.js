@@ -1,180 +1,459 @@
-(function(global) {
-  'use strict';
-
+/**
+ * This class manages a single image. It keeps track of the image's height,
+ * width, and position in the grid. An instance of this class is associated
+ * with a single image figure, which looks like this:
+ *
+ *   <figure class="pig-figure" style="transform: ...">
+ *     <img class="pig-thumbnail pig-loaded" src="/path/to/thumbnail/image.jpg" />
+ *     <img class="pig-loaded" src="/path/to/500px/image.jpg" />
+ *   </figure>
+ *
+ * However, this element may or may not actually exist in the DOM. The actual
+ * DOM element may loaded and unloaded depending on where it is with respect
+ * to the viewport. This class is responsible for managing the DOM elements,
+ * but does not include logic to determine _when_ the DOM elements should
+ * be removed.
+ *
+ * This class also manages the blur-into-focus load effect.  First, the
+ * <figure> element is inserted into the page. Then, a very small thumbnail
+ * is loaded, stretched out to the full size of the image.  This pixelated
+ * image is then blurred using CSS filter: blur(). Then, the full image is
+ * loaded, with opacity:0.  Once it has loaded, it is given the `pig-loaded`
+ * class, and its opacity is set to 1.  This creates an effect where there is
+ * first a blurred version of the image, and then it appears to come into
+ * focus.
+ */
+export class ProgressiveImage {
   /**
-   * This is a manager for our resize handlers. You can add a callback, disable
-   * all resize handlers, and re-enable handlers after they have been disabled.
+   * Creates an instance of ProgressiveImage.
    *
-   * optimizedResize is adapted from Mozilla code:
-   * https://developer.mozilla.org/en-US/docs/Web/Events/resize
+   * @param {object[]} singleImageData - An array of metadata about each image to
+   *                                     include in the grid.
+   * @param {string} singleImageData[].filename - The filename of the image.
+   * @param {string} singleImageData[].aspectRatio - The aspect ratio of the
+   *                                                 image.
+   * @param {number} index - Index of image in data source
+   * @param {object} pig - The Pig instance
+   *
+   * @returns {object}  The ProgressiveImage instance, for easy chaining with the constructor.
    */
-  const optimizedResize = (function() {
-    const callbacks = [];
-    let running = false;
+  constructor(singleImageData, index, pig) {
+    // Global State
+    this.existsOnPage = false; // True if the element exists on the page.
 
-    // fired on resize event
-    function resize() {
-      if (!running) {
-        running = true;
-        if (window.requestAnimationFrame) {
-          window.requestAnimationFrame(runCallbacks);
-        } else {
-          setTimeout(runCallbacks, 66);
-        }
-      }
-    }
+    // Instance information
+    this.aspectRatio = singleImageData.aspectRatio;  // Aspect Ratio
+    this.filename = singleImageData.filename;  // Filename
+    this.index = index;  // The index in the list of images
 
-    // run the actual callbacks
-    function runCallbacks() {
-      callbacks.forEach(function(callback) {
-        callback();
-      });
+    // The Pig instance
+    this.pig = pig;
 
-      running = false;
-    }
-
-    return {
-      /**
-       * Add a callback to be run on resize.
-       *
-       * @param {function} callback - the callback to run on resize.
-       */
-      add: function(callback) {
-        if (!callbacks.length) {
-          window.addEventListener('resize', resize);
-        }
-
-        callbacks.push(callback);
-      },
-
-      /**
-       * Disables all resize handlers.
-       */
-      disable: function() {
-        window.removeEventListener('resize', resize);
-      },
-
-      /**
-       * Enables all resize handlers, if they were disabled.
-       */
-      reEnable: function() {
-        window.addEventListener('resize', resize);
-      }
+    this.classNames = {
+      figure: `${pig.settings.classPrefix}-figure`,
+      thumbnail: `${pig.settings.classPrefix}-thumbnail`,
+      loaded: `${pig.settings.classPrefix}-loaded`
     };
-  }());
 
-  /**
-   * Inject CSS needed to make the grid work in the <head></head>.
-   *
-   * @param {string} containerId - ID of the container for the images.
-   * @param {string} classPrefix - the prefix associated with this library that
-   *                               should be prepended to classnames.
-   * @param {number} transitionSpeed - animation duration in milliseconds
-   */
-  function _injectStyle(containerId, classPrefix, transitionSpeed) {
-
-    const css = (
-      '#' + containerId + ' {' +
-      '  position: relative;' +
-      '}' +
-      '.' + classPrefix + '-figure {' +
-      '  background-color: #D5D5D5;' +
-      '  overflow: hidden;' +
-      '  left: 0;' +
-      '  position: absolute;' +
-      '  top: 0;' +
-      '  margin: 0;' +
-      '}' +
-      '.' + classPrefix + '-figure img {' +
-      '  left: 0;' +
-      '  position: absolute;' +
-      '  top: 0;' +
-      '  height: 100%;' +
-      '  width: 100%;' +
-      '  opacity: 0;' +
-      '  transition: ' + (transitionSpeed / 1000).toString(10) + 's ease opacity;' +
-      '  -webkit-transition: ' + (transitionSpeed / 1000).toString(10) + 's ease opacity;' +
-      '}' +
-      '.' + classPrefix + '-figure img.' + classPrefix + '-thumbnail {' +
-      '  -webkit-filter: blur(30px);' +
-      '  filter: blur(30px);' +
-      '  left: auto;' +
-      '  position: relative;' +
-      '  width: auto;' +
-      '}' +
-      '.' + classPrefix + '-figure img.' + classPrefix + '-loaded {' +
-      '  opacity: 1;' +
-      '}'
-    );
-
-    const head = document.head || document.getElementsByTagName('head')[0];
-    const style = document.createElement('style');
-
-    style.type = 'text/css';
-    if (style.styleSheet) {
-      // set style for IE8 and below
-      style.styleSheet.cssText = css;
-    } else {
-      style.appendChild(document.createTextNode(css));
-    }
-
-    head.appendChild(style);
+    return this;
   }
 
   /**
-   * Extend obj1 with each key in obj2, overriding default values in obj1 with
-   * values in obj2
+   * Load the image element associated with this ProgressiveImage into the DOM.
    *
-   * @param {object} obj1 - The object to extend.
-   * @param {object} obj2 - The overrides to apply onto obj1.
+   * This function will append the figure into the DOM, create and insert the
+   * thumbnail, and create and insert the full image.
    */
-  function _extend(obj1, obj2) {
-    for (const i in obj2) {
-      if (obj2.hasOwnProperty(i)) {
-        obj1[i] = obj2[i];
+  load() {
+    // Create a new image element, and insert it into the DOM. It doesn't
+    // matter the order of the figure elements, because all positioning
+    // is done using transforms.
+    this.existsOnPage = true;
+    this._updateStyles();
+    this.pig.container.appendChild(this.getElement());
+
+    // We run the rest of the function in a 100ms setTimeout so that if the
+    // user is scrolling down the page very fast and hide() is called within
+    // 100ms of load(), the hide() function will set this.existsOnPage to false
+    // and we can exit.
+    setTimeout(() => {
+      // The image was hidden very quickly after being loaded, so don't bother
+      // loading it at all.
+      if (!this.existsOnPage) {
+        return;
+      }
+
+      this.addAllSubElements();
+    }, 100);
+  }
+
+  /**
+   * Removes the figure from the DOM, removes the thumbnail and full image, and
+   * deletes the this.thumbnail and this.fullImage properties off of the
+   * ProgressiveImage object.
+   */
+  hide() {
+    // Remove the images from the element, so that if a user is scrolling super
+    // fast, we won't try to load every image we scroll past.
+    if (this.getElement()) {
+      this.removeAllSubElements();
+    }
+
+    // Remove the image from the DOM.
+    if (this.existsOnPage) {
+      this.pig.container.removeChild(this.getElement());
+    }
+
+    this.existsOnPage = false;
+  }
+
+  /**
+   * Get the DOM element associated with this ProgressiveImage. We default to
+   * using this.element, and we create it, if it doesn't exist.
+   *
+   * @returns {HTMLElement} The DOM element associated with this instance.
+   */
+  getElement() {
+    if (!this.element) {
+      this.element = document.createElement(this.pig.settings.figureTagName);
+      this.element.className = this.classNames.figure;
+      if (this.pig.settings.onClickHandler !== null) {
+        this.element.addEventListener('click', () => {
+          this.pig.settings.onClickHandler(this.filename);
+        });
+      }
+      this._updateStyles();
+    }
+
+    return this.element;
+  }
+
+  /**
+   * Add an imgage as a subelement to the <figure> tag.
+   *
+   * @param {string} subElementName - Name of the subelement
+   * @param {string} filename - ID, used to access the image (e.g. the filename)
+   * @param {number} size - Size of the image the image (e.g. this.pig.settings.thumbnailSize)
+   * @param {string} classname - Name of the class to be added to the new subelement
+   *                             (default value='' - i.e. no class added)
+   */
+  addImageAsSubElement(subElementName, filename, size, classname = '') {
+    let subElement = this[subElementName];
+    if (!subElement) {
+      this[subElementName] = new Image();
+      subElement = this[subElementName];
+      subElement.src = this.pig.settings.urlForSize(filename, size);
+      if (classname.length > 0) {
+        subElement.className = classname;
+      }
+      subElement.onload = () => {
+        // We have to make sure thumbnail still exists, we may have already been
+        // deallocated if the user scrolls too fast.
+        if (subElement) {
+          subElement.className += ` ${this.classNames.loaded}`;
+        }
+      };
+
+      this.getElement().appendChild(subElement);
+    }
+  }
+
+  /**
+   * Add all subelements of the <figure> tag (default: 'thumbnail' and 'fullImage').
+   */
+  addAllSubElements() {
+    // Add thumbnail
+    this.addImageAsSubElement('thumbnail', this.filename, this.pig.settings.thumbnailSize, this.classNames.thumbnail);
+
+    // Add full image
+    this.addImageAsSubElement('fullImage', this.filename, this.pig.settings.getImageSize(this.pig.lastWindowWidth));
+  }
+
+  /**
+   * Remove a subelement of the <figure> tag (e.g. an image element).
+   *
+   * @param {string} subElementName - SubElement of the <figure> tag - (e.g. 'this.fullImage')
+   */
+  removeSubElement(subElementName) {
+    const subElement = this[subElementName];
+    if (subElement) {
+      subElement.src = '';
+      this.getElement().removeChild(subElement);
+      delete this[subElementName];
+    }
+  }
+
+  /**
+   * Remove all subelements of the <figure> tag (default: 'thumbnail' and 'fullImage').
+   */
+  removeAllSubElements() {
+    this.removeSubElement('thumbnail');
+    this.removeSubElement('fullImage');
+  }
+
+  /**
+   * Updates the style attribute to reflect this style property on this object.
+   */
+  _updateStyles() {
+    this.getElement().style.transition = this.style.transition;
+    this.getElement().style.width = `${this.style.width}px`;
+    this.getElement().style.height = `${this.style.height}px`;
+    this.getElement().style.transform = (
+      `translate3d(${this.style.translateX}px, ${this.style.translateY}px, 0)`);
+  }
+}
+
+/**
+ * This is a manager for our resize handlers. You can add a callback, disable
+ * all resize handlers, and re-enable handlers after they have been disabled.
+ *
+ * optimizedResize is adapted from Mozilla code:
+ * https://developer.mozilla.org/en-US/docs/Web/Events/resize
+ */
+class OptimizedResize {
+  /**
+   * Creates an instance of OptimizedResize.
+   */
+  constructor() {
+    this._callbacks = [];
+    this._running = false;
+  }
+
+  /**
+   * Add a callback to be run on resize.
+   *
+   * @param {Function} callback - The callback to run on resize.
+   */
+  add(callback) {
+    if (!this._callbacks.length) {
+      window.addEventListener('resize', this._resize.bind(this));
+    }
+
+    this._callbacks.push(callback);
+  }
+
+  /**
+   * Disables all resize handlers.
+   */
+  disable() {
+    window.removeEventListener('resize', this._resize.bind(this));
+  }
+
+  /**
+   * Enables all resize handlers, if they were disabled.
+   */
+  reEnable() {
+    window.addEventListener('resize', this._resize.bind(this));
+  }
+
+  // fired on resize event
+  _resize() {
+    if (!this._running) {
+      this._running = true;
+      if (window.requestAnimationFrame) {
+        window.requestAnimationFrame(this._runCallbacks.bind(this));
+      } else {
+        setTimeout(this._runCallbacks.bind(this), 66);
       }
     }
   }
 
+  // run the actual callbacks
+  _runCallbacks() {
+    this._callbacks.forEach((callback) => {
+      callback();
+    });
+
+    this._running = false;
+  }
+}
+
+/**
+ * This is the class for defining all Pig options.
+ */
+class PigSettings {
   /**
-   * Returns the distance from `elem` to the top of the page. This is done by
-   * walking up the node tree, getting the offsetTop of each parent node, until
-   * the top of the page.
-   *
-   * @param {object} elem - The element to compute the offset of.
-   * @returns {number} - distance of `elem` to the top of the page
+   * Creates an instance of PigSettings.
    */
-  function _getOffsetTop(elem){
-    let offsetTop = 0;
-    do {
-      if (!isNaN(elem.offsetTop)){
-        offsetTop += elem.offsetTop;
-      }
-      elem = elem.offsetParent;
-    } while(elem);
-    return offsetTop;
+  constructor() {
+    /**
+     * Type: string
+     * Default: 'pig'
+     * Description: The class name of the element inside of which images should be loaded.
+     */
+    this.containerId = 'pig';
+
+    /**
+     * Type: window | HTMLElement
+     * Default: window
+     * Description: The window or HTML element that the grid scrolls in.
+     */
+    this.scroller = window;
+
+    /**
+     * Type: string
+     * Default: 'pig'
+     * Description: The prefix associated with this library that should be
+     * !            prepended to class names within the grid.
+     */
+    this.classPrefix = 'pig';
+
+    /**
+     * Type: string
+     * Default: 'figure'
+     * Description: The tag name to use for each figure. The default setting is
+     * !            to use a <figure></figure> tag.
+     */
+    this.figureTagName = 'figure';
+
+    /**
+     * Type: Number
+     * Default: 8
+     * Description: Size in pixels of the gap between images in the grid.
+     */
+    this.spaceBetweenImages = 8;
+
+    /**
+     * Type: Number
+     * Default: 500
+     * Description: Transition speed in milliseconds
+     */
+    this.transitionSpeed = 500;
+
+    /**
+     * Type: Number
+     * Default: 3000
+     * Description: Height in pixels of images to preload in the direction
+     *   that the user is scrolling. For example, in the default case, if the
+     *   user is scrolling down, 1000px worth of images will be loaded below
+     *   the viewport.
+     */
+    this.primaryImageBufferHeight = 1000;
+
+    /**
+     * Type: Number
+     * Default: 100
+     * Description: Height in pixels of images to preload in the direction
+     *   that the user is NOT scrolling. For example, in the default case, if
+     *   the user is scrolling down, 300px worth of images will be loaded
+     *   above the viewport.  Images further up will be removed.
+     */
+    this.secondaryImageBufferHeight = 300;
+
+    /**
+     * Type: Number
+     * Default: 20
+     * Description: The height in pixels of the thumbnail that should be
+     *   loaded and blurred to give the effect that images are loading out of
+     *   focus and then coming into focus.
+     */
+    this.thumbnailSize = 20;
+
+    /**
+     * Get a callback with the filename property of the image
+     * which was clicked.
+     * callback signature: function(filename) { ... }
+     *
+     * @param {string} filename - The filename property of the image.
+     */
+    this.onClickHandler = null;
   }
 
+  /**
+   * Get the URL for an image with the given filename & size.
+   *
+   * @param {string} filename - The filename of the image.
+   * @param {number} size - The size (height in pixels) of the image.
+   *
+   * @returns {string} The URL of the image at the given size.
+   */
+  urlForSize(filename, size) {
+    return `/img/${size.toString(10)}/${filename}`;
+  }
+
+  /**
+   * Get the minimum required aspect ratio for a valid row of images. The
+   * perfect rows are maintained by building up a row of images by adding
+   * together their aspect ratios (the aspect ratio when they are placed
+   * next to each other) until that aspect ratio exceeds the value returned
+   * by this function. Responsive reordering is achieved through changes
+   * to what this function returns at different values of the passed
+   * parameter `lastWindowWidth`.
+   *
+   * @param {number} lastWindowWidth - The last computed width of the browser window.
+   *
+   * @returns {number} The minimum aspect ratio at this window width.
+   */
+  getMinAspectRatio(lastWindowWidth) {
+    if (lastWindowWidth <= 640) {
+      return 2;
+    } else if (lastWindowWidth <= 1280) {
+      return 4;
+    } else if (lastWindowWidth <= 1920) {
+      return 5;
+    }
+    return 6;
+  }
+
+  /**
+   * Get the image size (height in pixels) to use for this window width.
+   * Responsive resizing of images is achieved through changes to what this
+   * function returns at different values of the passed parameter
+   * `lastWindowWidth`.
+   *
+   * @param {number} lastWindowWidth - The last computed width of the browser window.
+   *
+   * @returns {number} The size (height in pixels) of the images to load.
+   */
+  getImageSize(lastWindowWidth) {
+    if (lastWindowWidth <= 640) {
+      return 100;
+    } else if (lastWindowWidth <= 1920) {
+      return 250;
+    }
+    return 500;
+  }
+
+  /**
+   * Factory function that creates a new instance of the ProgressiveImage class.
+   *
+   * @param {object} singleImageData - Data of the image in the data source
+   * @param {number} index - Index of the image in the data source
+   * @param {object} pig - Pig instance, that should contain the image
+   *
+   * @returns {object} The newly created instance of the ProgressiveImage class
+   */
+  createProgressiveImage(singleImageData, index, pig) {
+    return new ProgressiveImage(singleImageData, index, pig);
+  }
+}
+
+/**
+ * Class for the progressive image grid. Instantiating an instance of the Pig
+ * class does not cause any images to appear however. After instantiating,
+ * call the `enable()` function on the returned instance:
+ *
+ *   var pig = new Pig(imageData, opts);
+ *   pig.enable();
+ */
+export class Pig {
   /**
    * Creates an instance of the progressive image grid, inserting boilerplate
-   * CSS and loading image data. Instantiating an instance of the Pig class
-   * does not cause any images to appear however. After instantiating, call the
-   * `enable()` function on the returned instance:
+   * CSS and loading image data.
    *
-   *   var pig = new Pig(imageData, opts);
-   *   pig.enable();
-   *
-   * @param {array} imageData - An array of metadata about each image to
-   *                            include in the grid.
-   * @param {string} imageData[0].filename - The filename of the image.
-   * @param {string} imageData[0].aspectRatio - The aspect ratio of the image.
+   * @param {object[]} imageData - An array of metadata about each image to
+   *                               include in the grid.
+   * @param {string} imageData[].filename - The filename of the image.
+   * @param {string} imageData[].aspectRatio - The aspect ratio of the image.
    * @param {object} options - An object containing overrides for the default
-   *                           options. See below for the full list of options
-   *                           and defaults.
+   *                           options. See class PigSettings for the full list
+   *                           of options and defaults.
    *
    * @returns {object} The Pig instance.
    */
-  function Pig(imageData, options) {
+  constructor(imageData, options) {
+    this._optimizedResize = new OptimizedResize();
+
     // Global State
     this.inRAF = false;
     this.isTransitioning = false;
@@ -187,156 +466,13 @@
     // List of images that are loading or completely loaded on screen.
     this.visibleImages = [];
 
-    // These are the default settings, which may be overridden.
-    this.settings = {
-
-      /**
-       * Type: string
-       * Default: 'pig'
-       * Description: The class name of the element inside of which images should
-       *   be loaded.
-       */
-      containerId: 'pig',
-
-      /**
-       * Type: window | HTMLElement
-       * Default: window
-       * Description: The window or HTML element that the grid scrolls in.
-       */
-      scroller: window,
-
-      /**
-       * Type: string
-       * Default: 'pig'
-       * Description: The prefix associated with this library that should be
-       *   prepended to class names within the grid.
-       */
-      classPrefix: 'pig',
-
-      /**
-       * Type: string
-       * Default: 'figure'
-       * Description: The tag name to use for each figure. The default setting is
-       *   to use a <figure></figure> tag.
-       */
-      figureTagName: 'figure',
-
-      /**
-       * Type: Number
-       * Default: 8
-       * Description: Size in pixels of the gap between images in the grid.
-       */
-      spaceBetweenImages: 8,
-
-      /**
-       * Type: Number
-       * Default: 500
-       * Description: Transition speed in milliseconds
-       */
-      transitionSpeed: 500,
-
-      /**
-       * Type: Number
-       * Default: 3000
-       * Description: Height in pixels of images to preload in the direction
-       *   that the user is scrolling. For example, in the default case, if the
-       *   user is scrolling down, 1000px worth of images will be loaded below
-       *   the viewport.
-       */
-      primaryImageBufferHeight: 1000,
-
-      /**
-       * Type: Number
-       * Default: 100
-       * Description: Height in pixels of images to preload in the direction
-       *   that the user is NOT scrolling. For example, in the default case, if
-       *   the user is scrolling down, 300px worth of images will be loaded
-       *   above the viewport.  Images further up will be removed.
-       */
-      secondaryImageBufferHeight: 300,
-
-      /**
-       * Type: Number
-       * Default: 20
-       * Description: The height in pixels of the thumbnail that should be
-       *   loaded and blurred to give the effect that images are loading out of
-       *   focus and then coming into focus.
-       */
-      thumbnailSize: 20,
-
-      /**
-       * Get the URL for an image with the given filename & size.
-       *
-       * @param {string} filename - The filename of the image.
-       * @param {Number} size - The size (height in pixels) of the image.
-       *
-       * @returns {string} The URL of the image at the given size.
-       */
-      urlForSize: function(filename, size) {
-        return '/img/' + size.toString(10) + '/' + filename;
-      },
-
-      /**
-       * Get a callback with the filename of the image
-       * which was clicked.
-       *
-       * @param {string} filename - The filename property of the image.
-       */
-      onClickHandler: null,
-
-      /**
-       * Get the minimum required aspect ratio for a valid row of images. The
-       * perfect rows are maintained by building up a row of images by adding
-       * together their aspect ratios (the aspect ratio when they are placed
-       * next to each other) until that aspect ratio exceeds the value returned
-       * by this function. Responsive reordering is achieved through changes
-       * to what this function returns at different values of the passed
-       * parameter `lastWindowWidth`.
-       *
-       * @param {Number} lastWindowWidth - The last computed width of the
-       *                                   browser window.
-       *
-       * @returns {Number} The minimum aspect ratio at this window width.
-       */
-      getMinAspectRatio: function(lastWindowWidth) {
-        if (lastWindowWidth <= 640) {
-          return 2;
-        } else if (lastWindowWidth <= 1280) {
-          return 4;
-        } else if (lastWindowWidth <= 1920) {
-          return 5;
-        }
-        return 6;
-      },
-
-      /**
-       * Get the image size (height in pixels) to use for this window width.
-       * Responsive resizing of images is achieved through changes to what this
-       * function returns at different values of the passed parameter
-       * `lastWindowWidth`.
-       *
-       * @param {Number} lastWindowWidth - The last computed width of the
-       *                                   browser window.
-       *
-       * @returns {Number} The size (height in pixels) of the images to load.
-       */
-      getImageSize: function(lastWindowWidth) {
-        if (lastWindowWidth <= 640) {
-          return 100;
-        } else if (lastWindowWidth <= 1920) {
-          return 250;
-        }
-        return 500;
-      }
-    };
-
     // We extend the default settings with the provided overrides.
-    _extend(this.settings, options || {});
+    this.settings = Object.assign(new PigSettings(), options);
 
     // Find the container to load images into, if it exists.
     this.container = document.getElementById(this.settings.containerId);
     if (!this.container) {
-      console.error('Could not find element with ID ' + this.settings.containerId);
+      console.error(`Could not find element with ID ${this.settings.containerId}`);
     }
 
     this.scroller = this.settings.scroller;
@@ -346,10 +482,139 @@
     this.images = this._parseImageData(imageData);
 
     // Inject our boilerplate CSS.
-    _injectStyle(this.settings.containerId, this.settings.classPrefix, this.settings.transitionSpeed);
+    // eslint-disable-next-line max-len
+    this._injectStyle(this.settings.containerId, this.settings.classPrefix, this.settings.transitionSpeed);
 
     // Allows for chaining with `enable()`.
     return this;
+  }
+
+  /**
+   * Enable scroll and resize handlers, and run a complete layout computation /
+   * application.
+   *
+   * @returns {object} The Pig instance, for easy chaining with the constructor.
+   */
+  enable() {
+    this.onScroll = this._getOnScroll();
+
+    this.scroller.addEventListener('scroll', this.onScroll);
+
+    this.onScroll();
+    this._computeLayout();
+    this._doLayout();
+
+    this._optimizedResize.add(() => {
+      // eslint-disable-next-line max-len
+      this.lastWindowWidth = this.scroller === window ? window.innerWidth : this.scroller.offsetWidth;
+      this._computeLayout();
+      this._doLayout();
+    });
+
+    return this;
+  }
+
+  /**
+   * Remove all scroll and resize listeners.
+   *
+   * @returns {object} The Pig instance.
+   */
+  disable() {
+    this.scroller.removeEventListener('scroll', this.onScroll);
+    this._optimizedResize.disable();
+    return this;
+  }
+
+  /**
+   * Creates new instances of the ProgressiveImage class for each of the images
+   * defined in `imageData`.
+   *
+   * @param {object[]} imageData - An array of metadata about each image to
+   *                               include in the grid.
+   * @param {string} imageData[].filename - The filename of the image.
+   * @param {string} imageData[].aspectRatio - The aspect ratio of the image.
+   *
+   * @returns {ProgressiveImage[]} - An array of ProgressiveImage instances
+   *                                 that we created.
+   */
+  _parseImageData(imageData) {
+    const progressiveImages = [];
+
+    imageData.forEach((image, index) => {
+      const progressiveImage = this.settings.createProgressiveImage(image, index, this);
+      progressiveImages.push(progressiveImage);
+    });
+
+    return progressiveImages;
+  }
+
+  /**
+   * Returns the distance from `elem` to the top of the page. This is done by
+   * walking up the node tree, getting the offsetTop of each parent node, until
+   * the top of the page.
+   *
+   * @param {object} elem - The element to compute the offset of.
+   *
+   * @returns {number} - Distance of `elem` to the top of the page
+   */
+  _getOffsetTop(elem) {
+    let offsetTop = 0;
+    do {
+      if (!Number.isNaN(elem.offsetTop)) {
+        offsetTop += elem.offsetTop;
+      }
+      elem = elem.offsetParent;  // eslint-disable-line no-param-reassign
+    } while (elem);
+    return offsetTop;
+  }
+
+  /**
+   * Inject CSS needed to make the grid work in the <head></head>.
+   *
+   * @param {string} containerId - ID of the container for the images.
+   * @param {string} classPrefix - The prefix associated with this library that
+   *                               should be prepended to classnames.
+   * @param {number} transitionSpeed - Animation duration in milliseconds
+   */
+  _injectStyle(containerId, classPrefix, transitionSpeed) {
+    const css = (
+      `#${containerId} {` +
+      '  position: relative;' +
+      '}' +
+      `.${classPrefix}-figure {` +
+      '  background-color: #D5D5D5;' +
+      '  overflow: hidden;' +
+      '  left: 0;' +
+      '  position: absolute;' +
+      '  top: 0;' +
+      '  margin: 0;' +
+      '}' +
+      `.${classPrefix}-figure img {` +
+      '  left: 0;' +
+      '  position: absolute;' +
+      '  top: 0;' +
+      '  height: 100%;' +
+      '  width: 100%;' +
+      '  opacity: 0;' +
+      `  transition: ${(transitionSpeed / 1000).toString(10)}s ease opacity;` +
+      `  -webkit-transition: ${(transitionSpeed / 1000).toString(10)}s ease opacity;` +
+      '}' +
+      `.${classPrefix}-figure img.${classPrefix}-thumbnail {` +
+      '  -webkit-filter: blur(30px);' +
+      '  filter: blur(30px);' +
+      '  left: auto;' +
+      '  position: relative;' +
+      '  width: auto;' +
+      '}' +
+      `.${classPrefix}-figure img.${classPrefix}-loaded {` +
+      '  opacity: 1;' +
+      '}'
+    );
+
+    const head = document.head || document.getElementsByTagName('head')[0];
+    const style = document.createElement('style');
+    style.appendChild(document.createTextNode(css));
+    head.appendChild(style);
   }
 
   /**
@@ -362,27 +627,27 @@
    * given as 500ms, we will wait 750ms before assuming that we are actually
    * done resizing.
    *
-   * @returns {Number} Time in milliseconds before we can consider a resize to
-   *   have been completed.
+   * @returns {number} Time in milliseconds before we can consider a resize to
+   * !                 have been completed.
    */
-  Pig.prototype._getTransitionTimeout = function() {
+  _getTransitionTimeout() {
     const transitionTimeoutScaleFactor = 1.5;
     return this.settings.transitionSpeed * transitionTimeoutScaleFactor;
-  };
+  }
 
   /**
    * Gives the CSS property string to set for the transition value, depending
    * on whether or not we are transitioning.
    *
-   * @returns {string} a value for the `transition` CSS property.
+   * @returns {string} A value for the `transition` CSS property.
    */
-  Pig.prototype._getTransitionString = function() {
+  _getTransitionString() {
     if (this.isTransitioning) {
-      return (this.settings.transitionSpeed / 1000).toString(10) + 's transform ease';
+      return `${(this.settings.transitionSpeed / 1000).toString(10)}s transform ease`;
     }
 
     return 'none';
-  };
+  }
 
   /**
    * Computes the current value for `this.minAspectRatio`, using the
@@ -390,7 +655,7 @@
    * `this.minAspectRatioRequiresTransition` will be set, depending on whether
    * or not the value of this.minAspectRatio has changed.
    */
-  Pig.prototype._recomputeMinAspectRatio = function() {
+  _recomputeMinAspectRatio() {
     const oldMinAspectRatio = this.minAspectRatio;
     this.minAspectRatio = this.settings.getMinAspectRatio(this.lastWindowWidth);
 
@@ -399,30 +664,7 @@
     } else {
       this.minAspectRatioRequiresTransition = false;
     }
-  };
-
-  /**
-   * Creates new instances of the ProgressiveImage class for each of the images
-   * defined in `imageData`.
-   *
-   * @param {array} imageData - An array of metadata about each image to
-   *                            include in the grid.
-   * @param {string} imageData[0].filename - The filename of the image.
-   * @param {string} imageData[0].aspectRatio - The aspect ratio of the image.
-   *
-   * @returns {Array[ProgressiveImage]} - An array of ProgressiveImage
-   *                                      instances that we created.
-   */
-  Pig.prototype._parseImageData = function(imageData) {
-    const progressiveImages = [];
-
-    imageData.forEach(function(image, index) {
-      const progressiveImage = new ProgressiveImage(image, index, this);
-      progressiveImages.push(progressiveImage);
-    }.bind(this));
-
-    return progressiveImages;
-  };
+  }
 
   /**
    * This computes the layout of the entire grid, setting the height, width,
@@ -439,7 +681,7 @@
    *
    * All DOM manipulation occurs in `_doLayout`.
    */
-  Pig.prototype._computeLayout = function() {
+  _computeLayout() {
     // Constants
     const wrapperWidth = parseInt(this.container.clientWidth, 10);
 
@@ -462,7 +704,7 @@
     // future calls to `_computeLayout` will set "transition: none".
     if (!this.isTransitioning && this.minAspectRatioRequiresTransition) {
       this.isTransitioning = true;
-      setTimeout(function() {
+      setTimeout(() => {
         this.isTransitioning = false;
       }, this._getTransitionTimeout());
     }
@@ -472,7 +714,7 @@
 
     // Loop through all our images, building them up into rows and computing
     // the working rowAspectRatio.
-    [].forEach.call(this.images, function(image, index) {
+    [].forEach.call(this.images, (image, index) => {
       rowAspectRatio += parseFloat(image.aspectRatio);
       row.push(image);
 
@@ -481,11 +723,11 @@
       // need for this row, and compute the style values for each of these
       // images.
       if (rowAspectRatio >= this.minAspectRatio || index + 1 === this.images.length) {
-
         // Make sure that the last row also has a reasonable height
         rowAspectRatio = Math.max(rowAspectRatio, this.minAspectRatio);
 
         // Compute this row's height.
+        // eslint-disable-next-line max-len
         const totalDesiredWidthOfImages = wrapperWidth - this.settings.spaceBetweenImages * (row.length - 1);
         const rowHeight = totalDesiredWidthOfImages / rowAspectRatio;
 
@@ -496,24 +738,22 @@
         // NOTE: This does not manipulate the DOM, rather it just sets the
         //       style values on the ProgressiveImage instance. The DOM nodes
         //       will be updated in _doLayout.
-        row.forEach(function(img) {
-
+        row.forEach((img) => {
           const imageWidth = rowHeight * img.aspectRatio;
 
           // This is NOT DOM manipulation.
-          img.style = {
+          img.style = {  // eslint-disable-line no-param-reassign
             width: parseInt(imageWidth, 10),
             height: parseInt(rowHeight, 10),
-            translateX: translateX,
-            translateY: translateY,
-            transition: transition
+            translateX,
+            translateY,
+            transition
           };
 
           // The next image is this.settings.spaceBetweenImages pixels to the
           // right of this image.
           translateX += imageWidth + this.settings.spaceBetweenImages;
-
-        }.bind(this));
+        });
 
         // Reset our state variables for next row.
         row = [];
@@ -521,11 +761,11 @@
         translateY += parseInt(rowHeight, 10) + this.settings.spaceBetweenImages;
         translateX = 0;
       }
-    }.bind(this));
+    });
 
     // No space below the last image
     this.totalHeight = translateY - this.settings.spaceBetweenImages;
-  };
+  }
 
   /**
    * Update the DOM to reflect the style values of each image in the PIG,
@@ -550,7 +790,7 @@
    * the primary buffer, and the secondary buffer will exist in the DOM.
    *
    *
-   *             Illustration: the primary and secondary buffers
+   * !           Illustration: the primary and secondary buffers
    *
    *
    * +---------------------------+
@@ -589,10 +829,9 @@
    * |                           |
    *
    */
-  Pig.prototype._doLayout = function() {
-
+  _doLayout() {
     // Set the container height
-    this.container.style.height = this.totalHeight + 'px';
+    this.container.style.height = `${this.totalHeight}px`;
 
     // Get the top and bottom buffers heights.
     const bufferTop =
@@ -605,7 +844,8 @@
         this.settings.primaryImageBufferHeight;
 
     // Now we compute the location of the top and bottom buffers:
-    const containerOffset = _getOffsetTop(this.container);
+    const containerOffset = this._getOffsetTop(this.container);
+    // eslint-disable-next-line max-len
     const scrollerHeight = this.scroller === window ? window.innerHeight : this.scroller.offsetHeight;
 
     // This is the top of the top buffer. If the bottom of an image is above
@@ -618,8 +858,7 @@
 
     // Here, we loop over every image, determine if it is inside our buffers or
     // no, and either insert it or remove it appropriately.
-    this.images.forEach(function(image) {
-
+    this.images.forEach((image) => {
       if (image.style.translateY + image.style.height < minTranslateYPlusHeight ||
             image.style.translateY > maxTranslateY) {
         // Hide Image
@@ -628,16 +867,16 @@
         // Load Image
         image.load();
       }
-    }.bind(this));
-  };
+    });
+  }
 
   /**
    * Create our onScroll handler and return it.
    *
-   * @returns {function} Our optimized onScroll handler that we should attach to.
+   * @returns {Function} Our optimized onScroll handler that we should attach.
    */
-  Pig.prototype._getOnScroll = function() {
-    const _this = this;
+  _getOnScroll() {
+    const that = this;
 
     /**
      * This function is called on scroll. It computes variables about the page
@@ -648,252 +887,24 @@
      * the number of layouts we perform by starting another layout while we are
      * in the middle of doing one.
      */
-    const onScroll = function() {
+    const onScroll = () => {
       // Compute the scroll direction using the latestYOffset and the
       // previousYOffset
-      const newYOffset = _this.scroller === window ? window.pageYOffset : _this.scroller.scrollTop;
-      _this.previousYOffset = _this.latestYOffset || newYOffset;
-      _this.latestYOffset = newYOffset;
-      _this.scrollDirection = (_this.latestYOffset > _this.previousYOffset) ? 'down' : 'up';
+      const newYOffset = that.scroller === window ? window.pageYOffset : that.scroller.scrollTop;
+      that.previousYOffset = that.latestYOffset || newYOffset;
+      that.latestYOffset = newYOffset;
+      that.scrollDirection = (that.latestYOffset > that.previousYOffset) ? 'down' : 'up';
 
       // Call _this.doLayout, guarded by window.requestAnimationFrame
-      if (!_this.inRAF) {
-        _this.inRAF = true;
-        window.requestAnimationFrame(function() {
-          _this._doLayout();
-          _this.inRAF = false;
+      if (!that.inRAF) {
+        that.inRAF = true;
+        window.requestAnimationFrame(() => {
+          that._doLayout();  // eslint-disable-line no-underscore-dangle
+          that.inRAF = false;
         });
       }
     };
 
     return onScroll;
-  };
-
-  /**
-   * Enable scroll and resize handlers, and run a complete layout computation /
-   * application.
-   *
-   * @returns {object} The Pig instance, for easy chaining with the constructor.
-   */
-  Pig.prototype.enable = function() {
-    this.onScroll = this._getOnScroll();
-
-    this.scroller.addEventListener('scroll', this.onScroll);
-
-    this.onScroll();
-    this._computeLayout();
-    this._doLayout();
-
-    optimizedResize.add(function() {
-      this.lastWindowWidth = this.scroller === window ? window.innerWidth : this.scroller.offsetWidth;
-      this._computeLayout();
-      this._doLayout();
-    }.bind(this));
-
-    return this;
-  };
-
-  /**
-   * Remove all scroll and resize listeners.
-   *
-   * @returns {object} The Pig instance.
-   */
-  Pig.prototype.disable = function() {
-    this.scroller.removeEventListener('scroll', this.onScroll);
-    optimizedResize.disable();
-    return this;
-  };
-
-  /**
-   * This class manages a single image. It keeps track of the image's height,
-   * width, and position in the grid. An instance of this class is associated
-   * with a single image figure, which looks like this:
-   *
-   *   <figure class="pig-figure" style="transform: ...">
-   *     <img class="pig-thumbnail pig-loaded" src="/path/to/thumbnail/image.jpg" />
-   *     <img class="pig-loaded" src="/path/to/500px/image.jpg" />
-   *   </figure>
-   *
-   * However, this element may or may not actually exist in the DOM. The actual
-   * DOM element may loaded and unloaded depending on where it is with respect
-   * to the viewport. This class is responsible for managing the DOM elements,
-   * but does not include logic to determine _when_ the DOM elements should
-   * be removed.
-   *
-   * This class also manages the blur-into-focus load effect.  First, the
-   * <figure> element is inserted into the page. Then, a very small thumbnail
-   * is loaded, stretched out to the full size of the image.  This pixelated
-   * image is then blurred using CSS filter: blur(). Then, the full image is
-   * loaded, with opacity:0.  Once it has loaded, it is given the `pig-loaded`
-   * class, and its opacity is set to 1.  This creates an effect where there is
-   * first a blurred version of the image, and then it appears to come into
-   * focus.
-   *
-   * @param {array} singleImageData - An array of metadata about each image to
-   *                                  include in the grid.
-   * @param {string} singleImageData[0].filename - The filename of the image.
-   * @param {string} singleImageData[0].aspectRatio - The aspect ratio of the
-   *                                                  image.
-   * @param {number} index - Index of the image in the list of images
-   * @param {object} pig - The Pig instance
-   *
-   * @returns {object}  The Pig instance, for easy chaining with the constructor.
-   */
-  function ProgressiveImage(singleImageData, index, pig) {
-
-    // Global State
-    this.existsOnPage = false; // True if the element exists on the page.
-
-    // Instance information
-    this.aspectRatio = singleImageData.aspectRatio;  // Aspect Ratio
-    this.filename = singleImageData.filename;  // Filename
-    this.index = index;  // The index in the list of images
-
-    // The Pig instance
-    this.pig = pig;
-
-    this.classNames = {
-      figure: pig.settings.classPrefix + '-figure',
-      thumbnail: pig.settings.classPrefix + '-thumbnail',
-      loaded: pig.settings.classPrefix + '-loaded'
-    };
-
-    return this;
   }
-
-  /**
-   * Load the image element associated with this ProgressiveImage into the DOM.
-   *
-   * This function will append the figure into the DOM, create and insert the
-   * thumbnail, and create and insert the full image.
-   */
-  ProgressiveImage.prototype.load = function() {
-    // Create a new image element, and insert it into the DOM. It doesn't
-    // matter the order of the figure elements, because all positioning
-    // is done using transforms.
-    this.existsOnPage = true;
-    this._updateStyles();
-    this.pig.container.appendChild(this.getElement());
-
-    // We run the rest of the function in a 100ms setTimeout so that if the
-    // user is scrolling down the page very fast and hide() is called within
-    // 100ms of load(), the hide() function will set this.existsOnPage to false
-    // and we can exit.
-    setTimeout(function() {
-
-      // The image was hidden very quickly after being loaded, so don't bother
-      // loading it at all.
-      if (!this.existsOnPage) {
-        return;
-      }
-
-      // Show thumbnail
-      if (!this.thumbnail) {
-        this.thumbnail = new Image();
-        this.thumbnail.src = this.pig.settings.urlForSize(this.filename, this.pig.settings.thumbnailSize);
-        this.thumbnail.className = this.classNames.thumbnail;
-        this.thumbnail.onload = function() {
-
-          // We have to make sure thumbnail still exists, we may have already been
-          // deallocated if the user scrolls too fast.
-          if (this.thumbnail) {
-            this.thumbnail.className += ' ' + this.classNames.loaded;
-          }
-        }.bind(this);
-
-        this.getElement().appendChild(this.thumbnail);
-      }
-
-      // Show full image
-      if (!this.fullImage) {
-        this.fullImage = new Image();
-        this.fullImage.src = this.pig.settings.urlForSize(this.filename, this.pig.settings.getImageSize(this.pig.lastWindowWidth));
-        this.fullImage.onload = function() {
-
-          // We have to make sure fullImage still exists, we may have already been
-          // deallocated if the user scrolls too fast.
-          if (this.fullImage) {
-            this.fullImage.className += ' ' + this.classNames.loaded;
-          }
-        }.bind(this);
-
-        this.getElement().appendChild(this.fullImage);
-      }
-
-    }.bind(this), 100);
-  };
-
-  /**
-   * Removes the figure from the DOM, removes the thumbnail and full image, and
-   * deletes the this.thumbnail and this.fullImage properties off of the
-   * ProgressiveImage object.
-   */
-  ProgressiveImage.prototype.hide = function() {
-    // Remove the images from the element, so that if a user is scrolling super
-    // fast, we won't try to load every image we scroll past.
-    if (this.getElement()) {
-      if (this.thumbnail) {
-        this.thumbnail.src = '';
-        this.getElement().removeChild(this.thumbnail);
-        delete this.thumbnail;
-      }
-
-      if (this.fullImage) {
-        this.fullImage.src = '';
-        this.getElement().removeChild(this.fullImage);
-        delete this.fullImage;
-      }
-    }
-
-    // Remove the image from the DOM.
-    if (this.existsOnPage) {
-      this.pig.container.removeChild(this.getElement());
-    }
-
-    this.existsOnPage = false;
-  };
-
-  /**
-   * Get the DOM element associated with this ProgressiveImage. We default to
-   * using this.element, and we create it if it doesn't exist.
-   *
-   * @returns {HTMLElement} The DOM element associated with this instance.
-   */
-  ProgressiveImage.prototype.getElement = function() {
-    if (!this.element) {
-      this.element = document.createElement(this.pig.settings.figureTagName);
-      this.element.className = this.classNames.figure;
-      if (this.pig.settings.onClickHandler !== null) {
-        this.element.addEventListener('click', function() {
-          this.pig.settings.onClickHandler(this.filename);
-        }.bind(this) );
-      }
-      this._updateStyles();
-    }
-
-    return this.element;
-  };
-
-
-  /**
-   * Updates the style attribute to reflect this style property on this object.
-   */
-  ProgressiveImage.prototype._updateStyles = function() {
-    this.getElement().style.transition = this.style.transition;
-    this.getElement().style.width = this.style.width + 'px';
-    this.getElement().style.height = this.style.height + 'px';
-    this.getElement().style.transform = (
-      'translate3d(' + this.style.translateX + 'px,' +
-        this.style.translateY + 'px, 0)');
-  };
-
-  // Export Pig into the global scope.
-  if (typeof define === 'function' && define.amd) {
-    define([], function() { return { Pig: Pig }; });
-  } else if (typeof module !== 'undefined' && module.exports) {
-    module.exports = Pig;
-  } else {
-    global.Pig = Pig;
-  }
-
-}(typeof window !== 'undefined' ? window : this));
+}

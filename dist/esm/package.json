@@ -15,12 +15,5 @@
   },
   "type": "module",
   "author": "Dan Schlosser",
-  "license": "MIT",
-  "scripts": {
-    "lint": ".\\node_modules\\.bin\\eslint -c .eslintrc.cjs src/**/*.js",
-    "build": "npm run build:esm && npm run build:umd",
-    "build:esm": "node scripts/build/build.targets.cjs esm",
-    "build:umd": "node scripts/build/build.targets.cjs umd",
-    "version": "node ./scripts/copy-packagejson-to-dist.cjs"
-  }
+  "license": "MIT"
 }
